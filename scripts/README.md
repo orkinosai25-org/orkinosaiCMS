@@ -4,6 +4,101 @@ This directory contains utility scripts for common development and troubleshooti
 
 ## Available Scripts
 
+### copilot-agent-helper.sh (Recommended)
+
+**Purpose:** Main helper script that orchestrates all Copilot agent fixes, including base branch detection and PR summary generation.
+
+**Usage:**
+```bash
+# Run all fixes (recommended for most use cases)
+./scripts/copilot-agent-helper.sh fix-all
+
+# Run diagnostics to check repository state
+./scripts/copilot-agent-helper.sh diagnose
+
+# Only detect base branch
+./scripts/copilot-agent-helper.sh detect-branch
+
+# Only generate PR summary
+./scripts/copilot-agent-helper.sh generate-summary
+
+# Show help
+./scripts/copilot-agent-helper.sh help
+```
+
+**What it does:**
+1. Automatically detects the base branch (main, master, develop, etc.)
+2. Verifies branch accessibility and fetches if needed
+3. Generates PR summaries with automatic fallback mechanisms
+4. Provides comprehensive diagnostics for troubleshooting
+5. Handles all common Copilot agent failure scenarios
+
+**When to use:**
+- **ALWAYS run before completing PR work** to prevent agent failures
+- When you encounter "branch not found" errors
+- When PR summary generation fails
+- Before pushing changes to verify repository state
+- As part of CI/CD pre-flight checks
+
+### detect-base-branch.sh
+
+**Purpose:** Automatically detect the repository's base branch without manual specification.
+
+**Usage:**
+```bash
+# Auto-detect base branch
+./scripts/detect-base-branch.sh
+
+# Export detected branch to file for sourcing
+./scripts/detect-base-branch.sh origin --export-file
+
+# Use custom remote
+./scripts/detect-base-branch.sh upstream
+```
+
+**What it does:**
+1. Checks for common base branches (main, master, develop)
+2. Uses GitHub CLI to detect default branch if available
+3. Fetches missing branches automatically
+4. Exports BASE_BRANCH and BASE_REF for use in other scripts
+5. Provides clear error messages with troubleshooting steps
+
+**When to use:**
+- When working in a new repository
+- When unsure which base branch to use
+- Before running git diff or log commands
+- As part of automated workflows
+
+### generate-pr-summary.sh
+
+**Purpose:** Generate PR descriptions with automatic retry and fallback mechanisms.
+
+**Usage:**
+```bash
+# Generate with auto-detected base branch
+./scripts/generate-pr-summary.sh
+
+# Specify base branch
+BASE_BRANCH=develop ./scripts/generate-pr-summary.sh
+
+# Customize output file and retries
+BASE_BRANCH=main OUTPUT_FILE=my-pr.md MAX_ATTEMPTS=5 ./scripts/generate-pr-summary.sh
+```
+
+**What it does:**
+1. Auto-detects base branch if not specified
+2. Attempts AI-assisted summary generation (if GitHub CLI available)
+3. Falls back to basic git-based summary on failure
+4. Retries with exponential backoff
+5. Validates generated summaries
+6. Provides preview of generated content
+
+**When to use:**
+- When PR description generation fails in Copilot agent
+- Before creating or updating a pull request
+- To get a quick overview of changes
+- When you need a template for manual PR description
+
 ### fix-base-branch.sh
 
 **Purpose:** Diagnose and fix the "base branch not found" error that commonly occurs when working with Copilot agent workflows in shallow git clones.
