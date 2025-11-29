@@ -164,3 +164,5 @@ echo "  • View commits: git log $REMOTE/$BASE_BRANCH..HEAD"
 echo "  • Create PR: Push your branch and open a pull request"
 echo ""
 echo -e "${GREEN}All checks passed!${NC}"
+
+exit 0
