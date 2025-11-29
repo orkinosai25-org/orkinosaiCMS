@@ -1,8 +1,40 @@
 # Quick Fix Guide for Copilot Agent Failures
 
+## 🚀 NEW: Automated Fix Tool
+
+**The fastest way to fix all common Copilot agent issues:**
+
+```bash
+# Run this ONE command to fix everything automatically
+./scripts/copilot-agent-helper.sh fix-all
+```
+
+This automated tool will:
+- ✅ Auto-detect the base branch (main, master, develop, etc.)
+- ✅ Handle shallow clones and missing branches
+- ✅ Generate PR summaries with automatic fallback
+- ✅ Verify repository state
+- ✅ Provide clear diagnostics
+
+**Individual commands available:**
+```bash
+./scripts/copilot-agent-helper.sh diagnose          # Check repository state
+./scripts/copilot-agent-helper.sh detect-branch     # Only detect base branch
+./scripts/copilot-agent-helper.sh generate-summary  # Only generate PR summary
+./scripts/copilot-agent-helper.sh help             # Show all options
+```
+
+---
+
 ## Quick Diagnosis
 
-Run this command to check your environment:
+**NEW: Automated Fix** (Recommended)
+```bash
+# Run the automated helper to diagnose and fix all issues
+./scripts/copilot-agent-helper.sh fix-all
+```
+
+**Manual Diagnosis:**
 ```bash
 git --no-pager log --oneline -5
 git --no-pager show-ref | grep main
@@ -18,19 +50,26 @@ fatal: ambiguous argument 'refs/heads/main': unknown revision or path not in the
 
 ### The Fix (Choose One)
 
-**Option 1: Fetch the base branch**
+**Option 1: Automated Fix (RECOMMENDED)**
+```bash
+# Automatically detects base branch and handles shallow clones
+./scripts/detect-base-branch.sh origin --export-file
+source ./scripts/.base-branch-detected
+```
+
+**Option 2: Fetch the base branch**
 ```bash
 git fetch origin main:refs/remotes/origin/main
 ```
 
-**Option 2: Use remote reference in comparisons**
+**Option 3: Use remote reference in comparisons**
 ```bash
 # Instead of: git diff main...HEAD
 # Use: git diff origin/main...HEAD
 git diff origin/main...HEAD
 ```
 
-**Option 3: Unshallow the clone (if you need full history)**
+**Option 4: Unshallow the clone (if you need full history)**
 ```bash
 git fetch --unshallow
 git branch --set-upstream-to=origin/main main
@@ -44,6 +83,17 @@ Failed to get a valid PR summary after 3 attempts.
 ```
 
 ### The Fix
+
+**Option 1: Automated Fix with Fallback (RECOMMENDED)**
+```bash
+# Automatically generates PR summary with retry and fallback
+./scripts/generate-pr-summary.sh
+
+# Or use the complete fix tool
+./scripts/copilot-agent-helper.sh fix-all
+```
+
+**Option 2: Manual Steps**
 
 1. **First, fix the base branch issue above** (it's often the root cause)
 

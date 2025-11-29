@@ -12,16 +12,26 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_BRANCH="${1:-main}"
 REMOTE="${2:-origin}"
+BASE_BRANCH="${1:-}"
 
-echo -e "${GREEN}=== Copilot Agent Base Branch Fix Tool ===${NC}"
-echo ""
-echo "This script will:"
-echo "  1. Check if the base branch ($BASE_BRANCH) is accessible"
-echo "  2. Fetch it if needed"
-echo "  3. Verify the repository state"
-echo ""
+# Auto-detect base branch if not provided
+if [ -z "$BASE_BRANCH" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$SCRIPT_DIR/detect-base-branch.sh" ]; then
+        print_warning "No base branch specified, attempting auto-detection..."
+        if bash "$SCRIPT_DIR/detect-base-branch.sh" "$REMOTE" --export-file > /tmp/base-branch-detect.log 2>&1; then
+            if [ -f "$SCRIPT_DIR/.base-branch-detected" ]; then
+                source "$SCRIPT_DIR/.base-branch-detected"
+            fi
+        fi
+    fi
+    
+    # Fallback to 'main' if detection failed
+    if [ -z "$BASE_BRANCH" ]; then
+        BASE_BRANCH="main"
+    fi
+fi
 
 # Function to print status
 print_status() {
@@ -35,6 +45,14 @@ print_error() {
 print_warning() {
     echo -e "${YELLOW}⚠${NC} $1"
 }
+
+echo -e "${GREEN}=== Copilot Agent Base Branch Fix Tool ===${NC}"
+echo ""
+echo "This script will:"
+echo "  1. Check if the base branch ($BASE_BRANCH) is accessible"
+echo "  2. Fetch it if needed"
+echo "  3. Verify the repository state"
+echo ""
 
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
