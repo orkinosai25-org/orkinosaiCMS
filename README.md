@@ -16,7 +16,7 @@ A modern, modular Content Management System built on .NET 10 and Blazor, inspire
 ## 📋 Requirements
 
 - .NET 10 SDK
-- SQL Server 2019+ or SQLite (for development)
+- SQL Server 2019+ / LocalDB (Windows) / Azure SQL (for development and production)
 - Visual Studio 2022 (17.12+) or Visual Studio 2026 (recommended)
 
 ## 🎯 Quick Start
@@ -34,25 +34,20 @@ cd orkinosaiCMS
 dotnet restore OrkinosaiCMS.sln
 ```
 
-### 3. Configure Database
+### 3. Apply Database Migrations
 
-Update connection string in `src/OrkinosaiCMS.Web/appsettings.Development.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=OrkinosaiCMS;Trusted_Connection=True;TrustServerCertificate=True;"
-  }
-}
-```
-
-### 4. Create Database
+Database is pre-configured with LocalDB for Windows. Apply the initial migration:
 
 ```bash
+# Install EF Core tools (first time only)
+dotnet tool install --global dotnet-ef --version 10.0.0
+
+# Apply migrations
 cd src/OrkinosaiCMS.Infrastructure
-dotnet ef migrations add InitialCreate --startup-project ../OrkinosaiCMS.Web
 dotnet ef database update --startup-project ../OrkinosaiCMS.Web
 ```
+
+For non-Windows or production setup, see [Database Guide](docs/DATABASE.md) and [Setup Guide](docs/SETUP.md).
 
 ### 5. Run the Application
 
@@ -67,6 +62,8 @@ Navigate to `https://localhost:5001`
 
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Understand the system design and architecture
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup and configuration instructions
+- **[Database Guide](docs/DATABASE.md)** - Database architecture and data access patterns
+- **[Azure Deployment](docs/AZURE_DEPLOYMENT.md)** - Deploy to Azure Web Apps with Azure SQL
 - **[Migration Guide](docs/MIGRATION.md)** - Migrating from Oqtane v10
 - **[Extensibility Guide](docs/EXTENSIBILITY.md)** - Creating custom modules, themes, and extensions
 

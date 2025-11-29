@@ -49,6 +49,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Role>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Permission>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
