@@ -11,6 +11,19 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Function to print status (defined early for use in detection)
+print_status() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
 # Configuration
 REMOTE="${2:-origin}"
 BASE_BRANCH="${1:-}"
@@ -32,19 +45,6 @@ if [ -z "$BASE_BRANCH" ]; then
         BASE_BRANCH="main"
     fi
 fi
-
-# Function to print status
-print_status() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
 
 echo -e "${GREEN}=== Copilot Agent Base Branch Fix Tool ===${NC}"
 echo ""
