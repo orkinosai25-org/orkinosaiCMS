@@ -202,16 +202,23 @@ generate_enhanced_summary() {
     if command -v gh >/dev/null 2>&1; then
         print_info "GitHub CLI detected, attempting AI-assisted summary..."
         
-        # Get diff content
-        DIFF_CONTENT=$(git diff "$base_ref...HEAD" | head -c 50000)
+        # Get diff content and save to temporary file to avoid command injection
+        # Limit to 50KB to avoid overwhelming the AI model with large diffs
+        local DIFF_FILE="/tmp/pr-diff-$$.txt"
+        git diff "$base_ref...HEAD" | head -c 50000 > "$DIFF_FILE"
         
         # Try to use GitHub CLI to generate summary (if copilot extension is available)
-        if gh copilot suggest "Generate a concise PR summary for the following changes: $DIFF_CONTENT" > /tmp/gh-copilot-summary.txt 2>&1; then
+        # Using stdin to safely pass diff content
+        if gh copilot suggest "Generate a concise PR summary for the following changes:" < "$DIFF_FILE" > /tmp/gh-copilot-summary.txt 2>&1; then
+            rm -f "$DIFF_FILE"
             if [ -s /tmp/gh-copilot-summary.txt ]; then
                 print_success "Generated AI-assisted summary"
                 cp /tmp/gh-copilot-summary.txt "$output_file"
+                rm -f "$DIFF_FILE"
                 return 0
             fi
+        else
+            rm -f "$DIFF_FILE"
         fi
     fi
     

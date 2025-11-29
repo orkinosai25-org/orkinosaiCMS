@@ -201,7 +201,13 @@ print_info "Verifying detected base branch..."
 
 if branch_exists "$BASE_BRANCH" "$REMOTE"; then
     BASE_REF="$REMOTE/$BASE_BRANCH"
-    BASE_SHA=$(git rev-parse "$BASE_REF" 2>/dev/null || git rev-parse "refs/remotes/$BASE_REF" 2>/dev/null)
+    BASE_SHA=$(git rev-parse "$BASE_REF" 2>/dev/null || git rev-parse "refs/remotes/$BASE_REF" 2>/dev/null || echo "")
+    
+    # Verify we got a valid SHA
+    if [ -z "$BASE_SHA" ]; then
+        print_error "Could not resolve SHA for $BASE_REF"
+        exit 1
+    fi
     
     print_success "Base branch verified: $BASE_REF"
     echo "  SHA: $BASE_SHA"
@@ -215,10 +221,17 @@ else
         print_info "Using grafted parent as comparison point"
         
         # Find the grafted commit (shallow boundary)
+        # The shallow file contains SHAs of commits that are boundaries of the shallow clone
         GRAFT_SHA=$(cat .git/shallow 2>/dev/null | head -1)
         if [ -n "$GRAFT_SHA" ]; then
-            BASE_REF="$GRAFT_SHA"
-            print_warning "Using grafted parent as base: ${GRAFT_SHA:0:8}"
+            # Verify the SHA is accessible before using it
+            if git rev-parse --verify "$GRAFT_SHA" >/dev/null 2>&1; then
+                BASE_REF="$GRAFT_SHA"
+                print_warning "Using grafted parent as base: ${GRAFT_SHA:0:8}"
+            else
+                print_error "Grafted commit ${GRAFT_SHA:0:8} is not accessible"
+                exit 1
+            fi
         else
             print_error "Could not determine base reference in shallow clone"
             exit 1

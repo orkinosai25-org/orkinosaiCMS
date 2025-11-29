@@ -259,11 +259,15 @@ fix_all() {
     # Step 2: Verify branch access
     print_section "Step 2: Verify Branch Access"
     if [ -f "$SCRIPT_DIR/fix-base-branch.sh" ]; then
-        if bash "$SCRIPT_DIR/fix-base-branch.sh" "$BASE_BRANCH" "$REMOTE" > /tmp/fix-base-branch.log 2>&1; then
+        # Use unique temp file to avoid conflicts in concurrent executions
+        local TEMP_LOG="/tmp/fix-base-branch-$$.log"
+        if bash "$SCRIPT_DIR/fix-base-branch.sh" "$BASE_BRANCH" "$REMOTE" > "$TEMP_LOG" 2>&1; then
             print_success "Branch access verified"
         else
-            print_warning "Branch verification had warnings (check /tmp/fix-base-branch.log)"
+            print_warning "Branch verification had warnings (check $TEMP_LOG)"
         fi
+        # Clean up temp log after a delay to allow viewing if needed
+        (sleep 300 && rm -f "$TEMP_LOG") &
     fi
     
     # Step 3: Generate PR summary
