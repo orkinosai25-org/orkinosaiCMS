@@ -35,7 +35,27 @@ dotnet restore OrkinosaiCMS.sln
 
 ### 3. Configure Database
 
-#### Option A: SQL Server (Recommended for Production)
+The database is already configured with Entity Framework Core 10 and includes:
+- Complete entity models for all CMS features
+- Initial database migration ready to apply
+- Repository pattern implementation
+- Unit of Work for transaction management
+
+#### Option A: LocalDB (Recommended for Windows Development)
+
+LocalDB is already configured in `appsettings.Development.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=OrkinosaiCMS;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+  }
+}
+```
+
+No additional configuration needed for LocalDB on Windows.
+
+#### Option B: SQL Server (Production or Non-Windows Development)
 
 1. Create a database:
 ```sql
@@ -46,34 +66,65 @@ CREATE DATABASE OrkinosaiCMS;
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=OrkinosaiCMS;Trusted_Connection=True;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=localhost;Database=OrkinosaiCMS;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
   }
 }
 ```
 
-#### Option B: SQLite (Recommended for Development)
-
-1. Update connection string in `src/OrkinosaiCMS.Web/appsettings.Development.json`:
+For SQL Server authentication:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=orkinosai.db"
+    "DefaultConnection": "Server=localhost;Database=OrkinosaiCMS;User Id=sa;Password=YourPassword;TrustServerCertificate=True;MultipleActiveResultSets=True"
   }
 }
 ```
 
-2. Add SQLite provider:
-```bash
-cd src/OrkinosaiCMS.Infrastructure
-dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+#### Option C: Azure SQL Database (Production)
+
+See [Azure Deployment Guide](AZURE_DEPLOYMENT.md) for complete Azure setup instructions.
+
+Quick configuration for Azure SQL:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=tcp:{your-server}.database.windows.net,1433;Initial Catalog=OrkinosaiCMS;User ID={username};Password={password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+  }
+}
 ```
 
-### 4. Create Database Migrations
+### 4. Apply Database Migrations
+
+The initial migration is already created. Apply it to create the database schema:
+
+#### Install EF Core Tools (First Time Only)
+
+```bash
+dotnet tool install --global dotnet-ef --version 10.0.0
+```
+
+#### Apply Migrations
 
 ```bash
 cd src/OrkinosaiCMS.Infrastructure
-dotnet ef migrations add InitialCreate --startup-project ../OrkinosaiCMS.Web
 dotnet ef database update --startup-project ../OrkinosaiCMS.Web
+```
+
+This will create all tables:
+- Sites, Pages, MasterPages
+- Modules, PageModules
+- Users, Roles, Permissions
+- UserRoles, RolePermissions
+- Themes
+
+#### Verify Database Creation
+
+```bash
+# List all migrations
+dotnet ef migrations list --startup-project ../OrkinosaiCMS.Web
+
+# Generate SQL script (optional)
+dotnet ef migrations script --startup-project ../OrkinosaiCMS.Web --output schema.sql
 ```
 
 ### 5. Build the Solution
