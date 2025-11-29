@@ -211,7 +211,8 @@ generate_enhanced_summary() {
         
         # Get diff content and save to temporary file to avoid command injection
         # Limit to 50KB to avoid overwhelming the AI model with large diffs
-        local DIFF_FILE="/tmp/pr-diff-$$.txt"
+        # Use mktemp for atomic temporary file creation to avoid race conditions
+        local DIFF_FILE=$(mktemp /tmp/pr-diff.XXXXXX)
         
         # Set up cleanup trap to ensure temp file is always removed
         # Use EXIT for more reliable cleanup across different shell environments

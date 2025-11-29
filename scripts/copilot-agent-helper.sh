@@ -259,8 +259,8 @@ fix_all() {
     # Step 2: Verify branch access
     print_section "Step 2: Verify Branch Access"
     if [ -f "$SCRIPT_DIR/fix-base-branch.sh" ]; then
-        # Use unique temp file to avoid conflicts in concurrent executions
-        local TEMP_LOG="/tmp/fix-base-branch-$$.log"
+        # Use mktemp for atomic temp file creation to avoid race conditions
+        local TEMP_LOG=$(mktemp /tmp/fix-base-branch.XXXXXX)
         
         if bash "$SCRIPT_DIR/fix-base-branch.sh" "$BASE_BRANCH" "$REMOTE" > "$TEMP_LOG" 2>&1; then
             print_success "Branch access verified"
