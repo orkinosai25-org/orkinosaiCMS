@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using OrkinosaiCMS.Core.Interfaces.Repositories;
 using OrkinosaiCMS.Core.Interfaces.Services;
 using OrkinosaiCMS.Infrastructure.Data;
+using OrkinosaiCMS.Infrastructure.Repositories;
 using OrkinosaiCMS.Infrastructure.Services;
 using OrkinosaiCMS.Web.Components;
 
@@ -27,8 +29,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // Register Repository Pattern
-builder.Services.AddScoped(typeof(OrkinosaiCMS.Core.Interfaces.Repositories.IRepository<>), typeof(OrkinosaiCMS.Infrastructure.Repositories.Repository<>));
-builder.Services.AddScoped<OrkinosaiCMS.Core.Interfaces.Repositories.IUnitOfWork, OrkinosaiCMS.Infrastructure.Repositories.UnitOfWork>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register Services
 builder.Services.AddScoped<IModuleService, ModuleService>();
