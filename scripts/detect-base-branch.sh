@@ -224,12 +224,18 @@ else
         # The shallow file contains SHAs of commits that are boundaries of the shallow clone
         GRAFT_SHA=$(cat .git/shallow 2>/dev/null | head -1)
         if [ -n "$GRAFT_SHA" ]; then
-            # Verify the SHA is accessible before using it
-            if git rev-parse --verify "$GRAFT_SHA" >/dev/null 2>&1; then
-                BASE_REF="$GRAFT_SHA"
-                print_warning "Using grafted parent as base: ${GRAFT_SHA:0:8}"
+            # Validate SHA format (40 hex characters)
+            if [[ "$GRAFT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+                # Verify the SHA is accessible before using it
+                if git rev-parse --verify "$GRAFT_SHA" >/dev/null 2>&1; then
+                    BASE_REF="$GRAFT_SHA"
+                    print_warning "Using grafted parent as base: ${GRAFT_SHA:0:8}"
+                else
+                    print_error "Grafted commit ${GRAFT_SHA:0:8} is not accessible"
+                    exit 1
+                fi
             else
-                print_error "Grafted commit ${GRAFT_SHA:0:8} is not accessible"
+                print_error "Invalid SHA format in .git/shallow: $GRAFT_SHA"
                 exit 1
             fi
         else

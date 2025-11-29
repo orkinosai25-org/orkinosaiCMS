@@ -262,15 +262,13 @@ fix_all() {
         # Use unique temp file to avoid conflicts in concurrent executions
         local TEMP_LOG="/tmp/fix-base-branch-$$.log"
         
-        # Set up cleanup to remove temp log after script completes
-        # Note: Temp log is retained for 5 minutes to allow post-execution review if needed
-        trap "{ sleep 300; rm -f $TEMP_LOG; } &" EXIT
-        
         if bash "$SCRIPT_DIR/fix-base-branch.sh" "$BASE_BRANCH" "$REMOTE" > "$TEMP_LOG" 2>&1; then
             print_success "Branch access verified"
+            rm -f "$TEMP_LOG"
         else
-            print_warning "Branch verification had warnings (check $TEMP_LOG)"
-            print_info "Log will be automatically deleted after 5 minutes"
+            print_warning "Branch verification had warnings"
+            print_info "Check log: $TEMP_LOG"
+            # Log will remain for user to review, cleanup is responsibility of temp cleaner
         fi
     fi
     

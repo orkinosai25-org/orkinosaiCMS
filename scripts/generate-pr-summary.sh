@@ -130,6 +130,13 @@ generate_basic_summary() {
     local base_ref="$1"
     local output_file="$2"
     
+    # Validate base_ref to prevent command injection
+    # Allow valid git reference characters: alphanumeric, /, -, _, .
+    if [[ ! "$base_ref" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
+        print_error "Invalid base reference format: $base_ref"
+        return 1
+    fi
+    
     print_info "Generating basic PR summary from git history..."
     
     {
@@ -207,7 +214,8 @@ generate_enhanced_summary() {
         local DIFF_FILE="/tmp/pr-diff-$$.txt"
         
         # Set up cleanup trap to ensure temp file is always removed
-        trap "rm -f $DIFF_FILE" RETURN
+        # Use EXIT for more reliable cleanup across different shell environments
+        trap "rm -f $DIFF_FILE" EXIT
         
         git diff "$base_ref...HEAD" | head -c 50000 > "$DIFF_FILE"
         
