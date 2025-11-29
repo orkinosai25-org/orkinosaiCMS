@@ -81,6 +81,12 @@ Visit `/cms-home` to see the demo website!
 - **[Azure Deployment](docs/AZURE_DEPLOYMENT.md)** - Deploy to Azure Web Apps with Azure SQL
 - **[Deployment Checklist](docs/DEPLOYMENT_CHECKLIST.md)** - Complete deployment procedures
 
+### GitHub Copilot & Troubleshooting
+- **[Quick Fix Guide](docs/QUICK_FIX_GUIDE.md)** ⚡ - Immediate solutions for common Copilot agent issues
+- **[Copilot Agent Guide](docs/github-copilot-agent-guide.md)** - Complete guide for working with Copilot agents
+- **[Troubleshooting Guide](docs/copilot-agent-troubleshooting.md)** - Detailed analysis of agent workflow failures
+- **[Utility Scripts](scripts/)** - Helper scripts for common tasks (e.g., `fix-base-branch.sh`)
+
 ### Roadmap & Planning
 - **[AI Assistant Roadmap](docs/AI_ASSISTANT_ROADMAP.md)** - 12-month AI integration plan
 - **[Implementation Summary](docs/WEBSITE_IMPLEMENTATION_SUMMARY.md)** - Project overview and status
@@ -202,9 +208,30 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **SharePoint** - Inspiration for page model and permission system
 - **.NET Team** - For the amazing .NET 10 and Blazor frameworks
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### "Base branch not found" error
+If you encounter `fatal: ambiguous argument 'refs/heads/main'`, this typically happens with shallow clones. Quick fix:
+```bash
+./scripts/fix-base-branch.sh
+```
+Or see our [Quick Fix Guide](docs/QUICK_FIX_GUIDE.md) for detailed solutions.
+
+#### Copilot Agent Workflow Failures
+If a GitHub Copilot agent workflow fails:
+1. Check the [Quick Fix Guide](docs/QUICK_FIX_GUIDE.md) for immediate solutions
+2. Review the [Copilot Agent Guide](docs/github-copilot-agent-guide.md) for best practices
+3. See the [Troubleshooting Guide](docs/copilot-agent-troubleshooting.md) for detailed analysis
+
+#### Database Connection Issues
+See [Database Guide](docs/DATABASE.md) and [Setup Guide](docs/SETUP.md) for configuration help.
+
 ## 📞 Support
 
 - **Documentation**: [docs/](docs/)
+- **Troubleshooting**: [Quick Fix Guide](docs/QUICK_FIX_GUIDE.md)
 - **Issues**: [GitHub Issues](https://github.com/orkinosai25-org/orkinosaiCMS/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/orkinosai25-org/orkinosaiCMS/discussions)
 
