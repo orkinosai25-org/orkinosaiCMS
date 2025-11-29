@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\OrkinosaiCMS.Core\OrkinosaiCMS.Core.csproj" />
+    <ProjectReference Include="..\OrkinosaiCMS.Infrastructure\OrkinosaiCMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\OrkinosaiCMS.Shared\OrkinosaiCMS.Shared.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+</Project>
