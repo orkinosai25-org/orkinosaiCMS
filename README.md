@@ -58,14 +58,32 @@ dotnet run
 
 Navigate to `https://localhost:5001`
 
+**Note**: The database will be automatically seeded with sample data including:
+- Professional theme
+- Two master page layouts (Standard and Full Width)
+- Four modules (Hero, Features, ContactForm, HtmlContent)
+- Three sample pages (Home, About, Contact)
+- Default roles and permissions
+
+Visit `/cms-home` to see the demo website!
+
 ## 📚 Documentation
 
+### Core Documentation
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Understand the system design and architecture
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup and configuration instructions
 - **[Database Guide](docs/DATABASE.md)** - Database architecture and data access patterns
-- **[Azure Deployment](docs/AZURE_DEPLOYMENT.md)** - Deploy to Azure Web Apps with Azure SQL
-- **[Migration Guide](docs/MIGRATION.md)** - Migrating from Oqtane v10
 - **[Extensibility Guide](docs/EXTENSIBILITY.md)** - Creating custom modules, themes, and extensions
+
+### Migration & Deployment
+- **[Migration Guide](docs/MIGRATION.md)** - Migrating from Oqtane v10
+- **[Content Migration Design](docs/CONTENT_MIGRATION_DESIGN.md)** - Design decisions and migration strategy
+- **[Azure Deployment](docs/AZURE_DEPLOYMENT.md)** - Deploy to Azure Web Apps with Azure SQL
+- **[Deployment Checklist](docs/DEPLOYMENT_CHECKLIST.md)** - Complete deployment procedures
+
+### Roadmap & Planning
+- **[AI Assistant Roadmap](docs/AI_ASSISTANT_ROADMAP.md)** - 12-month AI integration plan
+- **[Implementation Summary](docs/WEBSITE_IMPLEMENTATION_SUMMARY.md)** - Project overview and status
 
 ## 🏗️ Project Structure
 
