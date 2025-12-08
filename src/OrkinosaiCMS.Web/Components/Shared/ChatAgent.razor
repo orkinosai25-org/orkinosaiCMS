@@ -127,8 +127,7 @@
     }
 </div>
 
-@using orkinosaiCMS.Server.Services
-@inject IZootaService ZootaService
+@inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
 
 @code {
@@ -215,14 +214,24 @@
 
         try
         {
-            // Call Zoota backend service (reads from appsettings.json)
-            var history = messages.Select(m => new orkinosaiCMS.Server.Services.ChatMessage
+            // Call Zoota Python backend directly
+            var history = messages.Where(m => !m.IsConfirmation).Select(m => new
             {
-                Role = m.Role,
-                Content = m.Content
+                role = m.Role,
+                content = m.Content
             }).ToList();
 
-            var response = await ZootaService.SendMessageAsync(userQuestion, history);
+            var requestBody = new
+            {
+                message = userQuestion,
+                history = history
+            };
+
+            var response = await HttpClient.PostAsJsonAsync("http://localhost:8000/api/chat", requestBody);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
+            var responseMessage = result?.Message ?? "I apologize, but I couldn't generate a response.";
 
             // Remove confirmation message
             RemoveConfirmationMessage();
@@ -230,7 +239,7 @@
             messages.Add(new ChatMessage
             {
                 Role = "assistant",
-                Content = response.Message,
+                Content = responseMessage,
                 Timestamp = DateTime.Now
             });
         }
@@ -281,5 +290,11 @@
     {
         currentMessage = message;
         await SendMessage();
+    }
+
+    private class ChatResponse
+    {
+        public string Message { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
     }
 }
