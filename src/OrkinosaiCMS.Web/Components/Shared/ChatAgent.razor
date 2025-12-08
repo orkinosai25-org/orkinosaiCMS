@@ -227,7 +227,9 @@
                 history = history
             };
 
-            var response = await HttpClient.PostAsJsonAsync("http://localhost:8000/api/chat", requestBody);
+            // Use localhost for backend (running on same server as .NET app)
+            var backendUrl = "http://localhost:8000/api/chat";
+            var response = await HttpClient.PostAsJsonAsync(backendUrl, requestBody);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
