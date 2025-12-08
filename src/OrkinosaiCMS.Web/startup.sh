@@ -193,10 +193,10 @@ echo "================================"
 echo "Starting .NET Application"
 echo "================================"
 
-if [ -f "orkinosaiCMS.Server.dll" ]; then
+if [ -f "OrkinosaiCMS.Web.dll" ]; then
     echo "Starting ASP.NET Core application..."
-    exec dotnet orkinosaiCMS.Server.dll
+    exec dotnet OrkinosaiCMS.Web.dll
 else
-    echo "ERROR: orkinosaiCMS.Server.dll not found!"
+    echo "ERROR: OrkinosaiCMS.Web.dll not found!"
     exit 1
 fi
