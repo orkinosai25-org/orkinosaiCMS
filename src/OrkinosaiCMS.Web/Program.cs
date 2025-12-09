@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using OrkinosaiCMS.Core.Interfaces.Repositories;
 using OrkinosaiCMS.Core.Interfaces.Services;
@@ -5,12 +6,19 @@ using OrkinosaiCMS.Infrastructure.Data;
 using OrkinosaiCMS.Infrastructure.Repositories;
 using OrkinosaiCMS.Infrastructure.Services;
 using OrkinosaiCMS.Web.Components;
+using OrkinosaiCMS.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add Authentication and Authorization
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 // Configure Database
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
