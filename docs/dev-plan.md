@@ -11,7 +11,7 @@ This document tracks our current feature roadmap, priorities, and assignments fo
 - **Permissions Model**: Role-based permission system with user permission checks and role-permission assignment
 - **Modular Architecture**: Plugin-based system with attribute discovery (already implemented)
 - **Database Layer**: EF Core with SQL Azure (production) and SQLite (development/testing) support
-- **Theme Engine (Blazor)**: Already implemented
+- **Theme Engine**: Comprehensive theme system with 6 ready-made themes, branding customization, and Zoota integration
 
 ### 🔄 In Progress
 - Fluent UI-based Admin Panel
@@ -97,4 +97,47 @@ The Zoota chat agent is now embedded only in the CMS admin (backend) panel. It a
 
 The Zoota agent is not available to site visitors—admin-only functionality. Architecture and UX keep these roles clearly separated for security, usability, and development clarity.
 
+## Theme Engine (December 2025)
+
+### ✅ Implemented Features
+- **Ready-Made Themes**: 6 professionally designed themes
+  1. Orkinosai Professional (Top Navigation)
+  2. SharePoint Portal (Left Navigation with Quick Launch)
+  3. Top Navigation (Modern horizontal layout)
+  4. Dashboard (Admin panel optimized)
+  5. Minimal (Content-focused design)
+  6. Marketing Landing (Conversion-focused)
+- **Theme Categories**: Modern, SharePoint, Dashboard, Minimal, Marketing
+- **Layout Types**: TopNavigation, LeftNavigation, Portal
+- **Branding Customization**: Primary, secondary, accent colors; logo upload
+- **Theme Cloning**: Create custom versions from system themes
+- **Admin UI**: Visual theme selector with filtering and preview
+- **API Endpoints**: Full REST API for theme management
+- **Zoota Integration**: Conversational theme switching via admin agent
+- **Mobile Responsive**: All themes are mobile-optimized
+- **SharePoint Inspiration**: Portal theme with familiar SharePoint UX
+
+### Theme Service Features
+- Get all themes / Get enabled themes
+- Get theme by ID, name, category, or layout type
+- Create, update, and delete themes
+- Apply theme to site
+- Update theme branding (colors, logo)
+- Clone themes for customization
+
+### API Endpoints Available
+- `GET /api/theme` - List all themes
+- `GET /api/theme/enabled` - List enabled themes
+- `GET /api/theme/{id}` - Get theme by ID
+- `GET /api/theme/category/{category}` - Get themes by category
+- `GET /api/theme/layout/{layoutType}` - Get themes by layout
+- `GET /api/theme/active/{siteId}` - Get active site theme
+- `POST /api/theme` - Create new theme
+- `POST /api/theme/apply` - Apply theme to site
+- `POST /api/theme/clone` - Clone existing theme
+- `PUT /api/theme/{id}/branding` - Update theme branding
+- `DELETE /api/theme/{id}` - Delete custom theme
+
+### Documentation
+- [Theme Engine Guide](THEME_ENGINE_GUIDE.md) - Complete theme usage and development guide
 
