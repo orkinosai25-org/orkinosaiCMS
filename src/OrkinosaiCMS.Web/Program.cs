@@ -13,19 +13,31 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Configure Database
+var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlServer(connectionString, sqlOptions =>
+    if (databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
     {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null);
-        sqlOptions.MigrationsAssembly("OrkinosaiCMS.Infrastructure");
-    });
+        var sqliteConnectionString = builder.Configuration.GetConnectionString("SqliteConnection") ?? "Data Source=orkinosai-cms.db";
+        options.UseSqlite(sqliteConnectionString, sqliteOptions =>
+        {
+            sqliteOptions.MigrationsAssembly("OrkinosaiCMS.Infrastructure");
+        });
+    }
+    else
+    {
+        options.UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+            sqlOptions.MigrationsAssembly("OrkinosaiCMS.Infrastructure");
+        });
+    }
 });
 
 // Register Repository Pattern
@@ -34,6 +46,11 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register Services
 builder.Services.AddScoped<IModuleService, ModuleService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 var app = builder.Build();
 

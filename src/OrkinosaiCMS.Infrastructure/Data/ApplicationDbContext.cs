@@ -32,6 +32,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+    // Content
+    public DbSet<Content> Contents => Set<Content>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -51,6 +54,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Permission>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Content>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
