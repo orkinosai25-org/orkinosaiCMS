@@ -103,23 +103,23 @@ public class PermissionService : IPermissionService
         var userRoles = await _userRoleRepository.FindAsync(ur => ur.UserId == userId, cancellationToken);
         var roleIds = userRoles.Select(ur => ur.RoleId).ToList();
 
-        // Get all permissions for these roles
-        var permissions = new HashSet<Permission>();
-        foreach (var roleId in roleIds)
+        if (!roleIds.Any())
         {
-            var rolePermissions = await _rolePermissionRepository.FindAsync(
-                rp => rp.RoleId == roleId, cancellationToken);
-            
-            foreach (var rp in rolePermissions)
-            {
-                var permission = await _permissionRepository.GetByIdAsync(rp.PermissionId, cancellationToken);
-                if (permission != null)
-                {
-                    permissions.Add(permission);
-                }
-            }
+            return Enumerable.Empty<Permission>();
         }
 
-        return permissions;
+        // Get all role permissions for these roles
+        var rolePermissions = await _rolePermissionRepository.FindAsync(
+            rp => roleIds.Contains(rp.RoleId), cancellationToken);
+        
+        var permissionIds = rolePermissions.Select(rp => rp.PermissionId).Distinct().ToList();
+
+        if (!permissionIds.Any())
+        {
+            return Enumerable.Empty<Permission>();
+        }
+
+        // Get all unique permissions
+        return await _permissionRepository.FindAsync(p => permissionIds.Contains(p.Id), cancellationToken);
     }
 }

@@ -130,16 +130,11 @@ public class RoleService : IRoleService
         var rolePermissions = await _rolePermissionRepository.FindAsync(rp => rp.RoleId == roleId, cancellationToken);
         var permissionIds = rolePermissions.Select(rp => rp.PermissionId).ToList();
 
-        var permissions = new List<Permission>();
-        foreach (var permissionId in permissionIds)
+        if (!permissionIds.Any())
         {
-            var permission = await _permissionRepository.GetByIdAsync(permissionId, cancellationToken);
-            if (permission != null)
-            {
-                permissions.Add(permission);
-            }
+            return Enumerable.Empty<Permission>();
         }
 
-        return permissions;
+        return await _permissionRepository.FindAsync(p => permissionIds.Contains(p.Id), cancellationToken);
     }
 }

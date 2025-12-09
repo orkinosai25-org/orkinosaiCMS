@@ -147,17 +147,12 @@ public class UserService : IUserService
         var userRoles = await _userRoleRepository.FindAsync(ur => ur.UserId == userId, cancellationToken);
         var roleIds = userRoles.Select(ur => ur.RoleId).ToList();
 
-        var roles = new List<Role>();
-        foreach (var roleId in roleIds)
+        if (!roleIds.Any())
         {
-            var role = await _roleRepository.GetByIdAsync(roleId, cancellationToken);
-            if (role != null)
-            {
-                roles.Add(role);
-            }
+            return Enumerable.Empty<Role>();
         }
 
-        return roles;
+        return await _roleRepository.FindAsync(r => roleIds.Contains(r.Id), cancellationToken);
     }
 
     public async Task<bool> VerifyPasswordAsync(string username, string password, CancellationToken cancellationToken = default)

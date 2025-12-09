@@ -48,6 +48,8 @@ public class ContentService : IContentService
 
     public async Task<IEnumerable<Content>> GetByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
+        // TODO: Optimize for large datasets by implementing database-level tag searching
+        // Consider storing tags in a separate table or using JSON query functions
         var allContent = await _contentRepository.GetAllAsync(cancellationToken);
         
         return allContent.Where(c => 
@@ -134,6 +136,8 @@ public class ContentService : IContentService
 
     public async Task<IEnumerable<Content>> SearchAsync(string searchTerm, int siteId, CancellationToken cancellationToken = default)
     {
+        // TODO: Implement database-level full-text search for better performance
+        // Consider using SQL Server CONTAINS function or adding a dedicated search index
         var allContent = await _contentRepository.FindAsync(c => c.SiteId == siteId, cancellationToken);
         
         return allContent.Where(c =>
