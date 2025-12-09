@@ -39,25 +39,160 @@ public static class SeedData
 
     private static async Task SeedThemesAsync(ApplicationDbContext context)
     {
-        var theme = new Theme
+        var themes = new List<Theme>
         {
-            Name = "Orkinosai Professional",
-            Description = "Modern, clean professional theme with blue and green color scheme",
-            AssetsPath = "/css/themes/orkinosai-theme.css",
-            DefaultSettings = JsonSerializer.Serialize(new
+            new Theme
             {
+                Name = "Orkinosai Professional",
+                Description = "Modern, clean professional theme with blue and green color scheme",
+                AssetsPath = "/css/themes/orkinosai-theme.css",
+                Category = "Modern",
+                LayoutType = "TopNavigation",
                 PrimaryColor = "#0066cc",
                 SecondaryColor = "#00a86b",
                 AccentColor = "#ff6b35",
-                FontFamily = "Segoe UI, sans-serif"
-            }),
-            IsEnabled = true,
-            IsSystem = true,
-            CreatedOn = DateTime.UtcNow,
-            CreatedBy = "System"
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#0066cc",
+                    SecondaryColor = "#00a86b",
+                    AccentColor = "#ff6b35",
+                    FontFamily = "Segoe UI, sans-serif"
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new Theme
+            {
+                Name = "SharePoint Portal",
+                Description = "SharePoint-inspired portal theme with left navigation and modern UI",
+                AssetsPath = "/css/themes/sharepoint-portal-theme.css",
+                Category = "SharePoint",
+                LayoutType = "LeftNavigation",
+                PrimaryColor = "#0078d4",
+                SecondaryColor = "#005a9e",
+                AccentColor = "#8764b8",
+                ThumbnailUrl = "/images/themes/sharepoint-portal.png",
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#0078d4",
+                    SecondaryColor = "#005a9e",
+                    AccentColor = "#8764b8",
+                    FontFamily = "Segoe UI, sans-serif",
+                    ShowQuickLaunch = true,
+                    ShowSuiteBar = true
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new Theme
+            {
+                Name = "Top Navigation",
+                Description = "Clean modern theme with top horizontal navigation",
+                AssetsPath = "/css/themes/top-navigation-theme.css",
+                Category = "Modern",
+                LayoutType = "TopNavigation",
+                PrimaryColor = "#2563eb",
+                SecondaryColor = "#059669",
+                AccentColor = "#f59e0b",
+                ThumbnailUrl = "/images/themes/top-navigation.png",
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#2563eb",
+                    SecondaryColor = "#059669",
+                    AccentColor = "#f59e0b",
+                    FontFamily = "Inter, sans-serif"
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new Theme
+            {
+                Name = "Dashboard",
+                Description = "Modern dashboard theme perfect for admin interfaces and data visualization",
+                AssetsPath = "/css/themes/dashboard-theme.css",
+                Category = "Dashboard",
+                LayoutType = "LeftNavigation",
+                PrimaryColor = "#6366f1",
+                SecondaryColor = "#10b981",
+                AccentColor = "#f59e0b",
+                ThumbnailUrl = "/images/themes/dashboard.png",
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#6366f1",
+                    SecondaryColor = "#10b981",
+                    AccentColor = "#f59e0b",
+                    FontFamily = "Inter, sans-serif",
+                    ShowSidebar = true,
+                    DarkMode = false
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new Theme
+            {
+                Name = "Minimal",
+                Description = "Clean and simple design with focus on content and readability",
+                AssetsPath = "/css/themes/minimal-theme.css",
+                Category = "Minimal",
+                LayoutType = "TopNavigation",
+                PrimaryColor = "#000000",
+                SecondaryColor = "#666666",
+                AccentColor = "#0066cc",
+                ThumbnailUrl = "/images/themes/minimal.png",
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#000000",
+                    SecondaryColor = "#666666",
+                    AccentColor = "#0066cc",
+                    FontFamily = "Helvetica Neue, Arial, sans-serif"
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new Theme
+            {
+                Name = "Marketing Landing",
+                Description = "Bold, conversion-focused theme perfect for marketing and landing pages",
+                AssetsPath = "/css/themes/marketing-theme.css",
+                Category = "Marketing",
+                LayoutType = "TopNavigation",
+                PrimaryColor = "#7c3aed",
+                SecondaryColor = "#ec4899",
+                AccentColor = "#06b6d4",
+                ThumbnailUrl = "/images/themes/marketing.png",
+                DefaultSettings = JsonSerializer.Serialize(new
+                {
+                    PrimaryColor = "#7c3aed",
+                    SecondaryColor = "#ec4899",
+                    AccentColor = "#06b6d4",
+                    FontFamily = "Inter, sans-serif",
+                    ShowHero = true,
+                    ShowCTA = true
+                }),
+                IsEnabled = true,
+                IsSystem = true,
+                IsMobileResponsive = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            }
         };
 
-        context.Themes.Add(theme);
+        context.Themes.AddRange(themes);
         await context.SaveChangesAsync();
     }
 
