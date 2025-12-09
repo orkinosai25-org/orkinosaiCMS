@@ -41,16 +41,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 return await Task.FromResult(new AuthenticationState(_anonymous));
             }
 
-            var claimsIdentity = new ClaimsIdentity(new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, userSession.UserId.ToString()),
-                new Claim(ClaimTypes.Name, userSession.Username),
-                new Claim(ClaimTypes.Email, userSession.Email),
-                new Claim("DisplayName", userSession.DisplayName),
-                new Claim(ClaimTypes.Role, userSession.Role)
-            }, "CustomAuth");
-
-            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            var claimsPrincipal = CreateClaimsPrincipal(userSession);
             return await Task.FromResult(new AuthenticationState(claimsPrincipal));
         }
         catch
@@ -66,17 +57,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         if (userSession != null)
         {
             await _sessionStorage.SetAsync("UserSession", userSession);
-            
-            var claimsIdentity = new ClaimsIdentity(new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, userSession.UserId.ToString()),
-                new Claim(ClaimTypes.Name, userSession.Username),
-                new Claim(ClaimTypes.Email, userSession.Email),
-                new Claim("DisplayName", userSession.DisplayName),
-                new Claim(ClaimTypes.Role, userSession.Role)
-            }, "CustomAuth");
-
-            claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            claimsPrincipal = CreateClaimsPrincipal(userSession);
         }
         else
         {
@@ -85,6 +66,20 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
+    }
+
+    private ClaimsPrincipal CreateClaimsPrincipal(UserSession userSession)
+    {
+        var claimsIdentity = new ClaimsIdentity(new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, userSession.UserId.ToString()),
+            new Claim(ClaimTypes.Name, userSession.Username),
+            new Claim(ClaimTypes.Email, userSession.Email),
+            new Claim("DisplayName", userSession.DisplayName),
+            new Claim(ClaimTypes.Role, userSession.Role)
+        }, "CustomAuth");
+
+        return new ClaimsPrincipal(claimsIdentity);
     }
 }
 

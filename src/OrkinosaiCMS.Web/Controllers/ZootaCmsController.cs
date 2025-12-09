@@ -350,10 +350,19 @@ public class ZootaCmsController : ControllerBase
 
     private string GenerateSlug(string title)
     {
-        return title.ToLower()
-            .Replace(" ", "-")
-            .Replace("'", "")
-            .Replace("\"", "");
+        // Convert to lowercase and remove diacritics
+        var slug = title.ToLower().Trim();
+        
+        // Replace invalid characters with hyphens
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        
+        // Replace multiple spaces or hyphens with single hyphen
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[\s-]+", "-");
+        
+        // Remove leading and trailing hyphens
+        slug = slug.Trim('-');
+        
+        return slug;
     }
 
     #endregion

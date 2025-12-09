@@ -88,9 +88,17 @@ public class AuthenticationService : IAuthenticationService
             return null;
         }
 
+        // Extract required claims
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            // Missing or invalid user ID claim - authentication is invalid
+            return null;
+        }
+
         return new UserSession
         {
-            UserId = int.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0"),
+            UserId = userId,
             Username = user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? string.Empty,
             Email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty,
             DisplayName = user.FindFirst("DisplayName")?.Value ?? string.Empty,
