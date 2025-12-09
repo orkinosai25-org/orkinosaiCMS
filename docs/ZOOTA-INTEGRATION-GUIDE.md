@@ -2,7 +2,9 @@
 
 ## Overview
 
-This guide explains how the Zoota AI Assistant has been integrated into OrkinosaiCMS. Zoota is a conversational AI chat agent powered by Azure OpenAI, with a Python Flask backend and Blazor frontend component.
+This guide explains how the Zoota AI Assistant has been integrated into OrkinosaiCMS. Zoota is an **admin-only** conversational AI chat agent powered by Azure OpenAI, with a Python Flask backend and Blazor frontend component.
+
+**🔒 Admin-Only Access:** Zoota is only available to authenticated administrators in the CMS backend. It does not appear for public site visitors.
 
 ## Architecture
 
@@ -65,6 +67,7 @@ This guide explains how the Zoota AI Assistant has been integrated into Orkinosa
 - ✅ User/assistant message differentiation
 - ✅ Azure/Fluent Design styling
 - ✅ Responsive design (desktop & mobile)
+- ✅ **Admin-only access with role-based authorization**
 
 ### 3. Configuration
 
@@ -117,15 +120,123 @@ This guide explains how the Zoota AI Assistant has been integrated into Orkinosa
 5. Verifies Python backend is responding
 6. Starts .NET application
 
-### 5. Layout Integration
+### 5. Admin Authentication System
+
+**Location:** `src/OrkinosaiCMS.Web/Services/`
+
+**Files:**
+- `CustomAuthenticationStateProvider.cs` - Manages admin authentication state
+- `AuthenticationService.cs` - Handles login/logout operations
+- `IAuthenticationService.cs` - Service interface
+
+**Key Features:**
+- ✅ Session-based authentication using ASP.NET Core Protected Browser Storage
+- ✅ Role-based authorization (Administrator role required)
+- ✅ User session management with claims
+- ✅ Integration with existing User and Role entities
+
+### 6. Admin Panel
+
+**Location:** `src/OrkinosaiCMS.Web/Components/`
+
+**Files:**
+- `Layout/Admin/AdminLayout.razor` - Admin-specific layout with sidebar
+- `Pages/Admin/Login.razor` - Admin login page
+- `Pages/Admin/Index.razor` - Admin dashboard
+
+**Key Features:**
+- ✅ Dedicated admin layout separate from public site
+- ✅ Admin navigation menu (Dashboard, Pages, Content, Media, Users, Settings)
+- ✅ Professional Azure-themed UI
+- ✅ Integrated Zoota chat agent
+- ✅ User profile and logout functionality
+
+### 7. CMS API Endpoints
+
+**Location:** `src/OrkinosaiCMS.Web/Controllers/`
+
+**Files:**
+- `ZootaCmsController.cs` - RESTful API for CMS operations
+
+**Endpoints:**
+- `GET /api/zoota/cms/pages` - List all pages
+- `POST /api/zoota/cms/pages` - Create a new page
+- `PUT /api/zoota/cms/pages/{id}` - Update a page
+- `DELETE /api/zoota/cms/pages/{id}` - Delete a page
+- `GET /api/zoota/cms/content` - List all content
+- `POST /api/zoota/cms/content` - Create content
+- `PUT /api/zoota/cms/content/{id}` - Update content
+- `DELETE /api/zoota/cms/content/{id}` - Delete content
+- `GET /api/zoota/cms/users` - List all users
+
+All endpoints require `[Authorize(Roles = "Administrator")]`.
+
+### 8. Layout Integration
 
 **Modified Files:**
 
 **`src/OrkinosaiCMS.Web/Components/Layout/MainLayout.razor`**
-- Added `<ChatAgent />` component at the end
+- Removed `<ChatAgent />` (now only in AdminLayout)
+
+**`src/OrkinosaiCMS.Web/Components/Layout/Admin/AdminLayout.razor`**
+- Added `<ChatAgent />` component for admin-only access
+
+**`src/OrkinosaiCMS.Web/Components/Shared/ChatAgent.razor`**
+- Wrapped in `<AuthorizeView Roles="Administrator">`
 
 **`src/OrkinosaiCMS.Web/Components/_Imports.razor`**
 - Added `@using OrkinosaiCMS.Web.Components.Shared`
+
+## Admin Access Setup
+
+### Creating Admin Users
+
+To use Zoota, you need an admin account:
+
+**Option 1: Database Seeding (Recommended)**
+
+Add to `SeedData.cs`:
+```csharp
+// Create admin user
+var adminUser = new User
+{
+    Username = "admin",
+    Email = "admin@orkinosaicms.local",
+    DisplayName = "Administrator",
+    IsActive = true
+};
+await userService.CreateAsync(adminUser, "Admin@123");
+
+// Assign Administrator role
+var adminRole = await roleService.GetByNameAsync("Administrator");
+await userService.AssignRolesAsync(adminUser.Id, new[] { adminRole.Id });
+```
+
+**Option 2: Manual Database Entry**
+
+Run SQL after database migration:
+```sql
+-- Insert user (password hash is for "Admin@123")
+INSERT INTO Users (Username, Email, DisplayName, PasswordHash, IsActive, CreatedOn, CreatedBy)
+VALUES ('admin', 'admin@orkinosaicms.local', 'Administrator', 
+        '$2a$11$...', 1, GETDATE(), 'system');
+
+-- Get the user ID and assign Administrator role
+INSERT INTO UserRoles (UserId, RoleId, CreatedOn)
+SELECT u.Id, r.Id, GETDATE()
+FROM Users u, Roles r
+WHERE u.Username = 'admin' AND r.Name = 'Administrator';
+```
+
+### Logging In
+
+1. Navigate to: `https://localhost:5001/admin/login`
+2. Enter credentials:
+   - Username: `admin`
+   - Password: `Admin@123` (or your custom password)
+3. Click "Sign In"
+
+After successful login, you'll be redirected to the admin dashboard where Zoota is available.
 
 ## Configuration Setup
 

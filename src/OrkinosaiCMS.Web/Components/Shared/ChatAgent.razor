@@ -1,6 +1,9 @@
-@* Zoota Chat Agent Component *@
+@* Zoota Chat Agent Component - Admin Only *@
+@using Microsoft.AspNetCore.Components.Authorization
 
-<div class="zoota-chat-container @(IsOpen ? "open" : "")">
+<AuthorizeView Roles="Administrator">
+    <Authorized>
+        <div class="zoota-chat-container @(IsOpen ? "open" : "")">
     @if (!IsOpen)
     {
         <!-- Chat Activator Button -->
@@ -126,6 +129,8 @@
         </div>
     }
 </div>
+    </Authorized>
+</AuthorizeView>
 
 @inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
