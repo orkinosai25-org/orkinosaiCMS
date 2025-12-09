@@ -171,7 +171,7 @@ public class ThemeController : ControllerBase
                 IsEnabled = true,
                 IsSystem = false,
                 IsMobileResponsive = true,
-                AssetsPath = $"/css/themes/{dto.Name.ToLower().Replace(" ", "-")}-theme.css"
+                AssetsPath = $"/css/themes/{GenerateSafeFileName(dto.Name)}-theme.css"
             };
 
             var created = await _themeService.CreateThemeAsync(theme);
@@ -182,6 +182,32 @@ public class ThemeController : ControllerBase
             _logger.LogError(ex, "Error creating theme");
             return StatusCode(500, new { message = "Error creating theme" });
         }
+    }
+
+    /// <summary>
+    /// Generate a safe filename from a theme name
+    /// </summary>
+    private static string GenerateSafeFileName(string themeName)
+    {
+        // Convert to lowercase and replace spaces with hyphens
+        var slug = themeName.ToLowerInvariant().Replace(" ", "-");
+        
+        // Remove invalid filename characters
+        var invalidChars = Path.GetInvalidFileNameChars();
+        slug = string.Concat(slug.Where(c => !invalidChars.Contains(c)));
+        
+        // Remove multiple consecutive hyphens
+        while (slug.Contains("--"))
+            slug = slug.Replace("--", "-");
+        
+        // Trim hyphens from start and end
+        slug = slug.Trim('-');
+        
+        // Ensure it's not empty
+        if (string.IsNullOrWhiteSpace(slug))
+            slug = "custom-theme";
+        
+        return slug;
     }
 
     /// <summary>

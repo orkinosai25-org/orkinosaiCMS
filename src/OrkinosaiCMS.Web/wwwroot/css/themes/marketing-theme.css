@@ -42,10 +42,18 @@ body {
 .mkt-logo {
     font-size: 24px;
     font-weight: 800;
+    color: var(--mkt-primary); /* Fallback for browsers without gradient support */
     background: linear-gradient(135deg, var(--mkt-primary), var(--mkt-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (background-clip: text) {
+    .mkt-logo {
+        background: none;
+    }
 }
 
 .mkt-nav {
@@ -110,10 +118,17 @@ body {
     font-weight: 900;
     margin: 0 0 24px 0;
     line-height: 1.1;
+    color: var(--mkt-primary); /* Fallback */
     background: linear-gradient(135deg, var(--mkt-primary), var(--mkt-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+@supports not (background-clip: text) {
+    .mkt-hero-title {
+        background: none;
+    }
 }
 
 .mkt-hero-subtitle {
@@ -306,10 +321,17 @@ body {
     font-size: 48px;
     font-weight: 900;
     margin: 0 0 8px 0;
+    color: var(--mkt-primary); /* Fallback */
     background: linear-gradient(135deg, var(--mkt-primary), var(--mkt-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+@supports not (background-clip: text) {
+    .mkt-pricing-price {
+        background: none;
+    }
 }
 
 .mkt-pricing-period {

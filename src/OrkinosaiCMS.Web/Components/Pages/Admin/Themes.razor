@@ -473,13 +473,16 @@
     {
         try
         {
-            // For now, apply to site ID 1 (default site)
-            await ThemeService.ApplyThemeToSiteAsync(1, theme.Id);
+            // Get the default site ID (in a production system, this would come from context or configuration)
+            const int defaultSiteId = 1; // TODO: Replace with ISiteContext or IConfiguration service
+            await ThemeService.ApplyThemeToSiteAsync(defaultSiteId, theme.Id);
             Console.WriteLine($"Applied theme: {theme.Name}");
+            // TODO: Add toast notification or success message to UI
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error applying theme: {ex.Message}");
+            // TODO: Add error notification to UI
         }
     }
 

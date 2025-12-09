@@ -17,6 +17,13 @@
     --sp-accent: #8764b8;
 }
 
+/* Z-index layers */
+:root {
+    --z-header: 1000;
+    --z-navigation: 900;
+    --z-overlay: 1100;
+}
+
 /* SharePoint Suite Bar */
 .sp-suite-bar {
     background-color: var(--sp-neutral-primary);
@@ -29,7 +36,7 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1000;
+    z-index: var(--z-header);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 

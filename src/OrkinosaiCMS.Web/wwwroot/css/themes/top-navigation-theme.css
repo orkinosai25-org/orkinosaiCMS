@@ -13,11 +13,18 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
     color: var(--tn-text-primary);
     background: var(--tn-bg-light);
     margin: 0;
     padding: 0;
+}
+
+/* Font loading optimization - fallback for web fonts */
+@supports (font-variation-settings: normal) {
+    body {
+        font-display: swap;
+    }
 }
 
 /* Top Header Bar */
