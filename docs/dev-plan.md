@@ -38,6 +38,16 @@ This document tracks our current feature roadmap, priorities, and assignments fo
 
 ## Recent Updates (December 2025)
 
+### Zoota Admin-Only Integration (December 9, 2025)
+- **Authentication System Implemented**: Custom authentication state provider for admin users
+- **Admin Panel Created**: Dedicated admin layout with navigation, login page, and dashboard
+- **Zoota Restricted**: Chat agent now only appears for authenticated administrators
+- **CMS API Endpoints**: RESTful API for managing pages, content, and users via Zoota
+- **Services**: AuthenticationService, CustomAuthenticationStateProvider for session management
+- **Admin Routes**: `/admin/login` and `/admin` with role-based authorization
+
+## Recent Updates (December 2025)
+
 ### Database Configuration
 - **SQL Azure Support**: Production connection string configured for `orkinosai.database.windows.net`
 - **SQLite Support**: Development/testing mode using local SQLite database
@@ -58,15 +68,33 @@ This document tracks our current feature roadmap, priorities, and assignments fo
 ---
 
 _Last updated: 2025-12-09_
-Dual Agent Strategy
-SaaS Conversational Agent for Visitors: This agent is used for all public-facing (visitor) interaction on client websites powered by OrkinosaiCMS. It is managed as a SaaS product and is not included with the CMS codebase; this makes it ideal for monetization and feature control across all sites.
 
-Zoota (Admin-Only) Agent: The Zoota chat agent is embedded only in the CMS admin (backend) panel. It appears when admins log in and can:
+## Dual Agent Strategy
 
-Create/manage assets, pages, content, and images
-Run CMS commands (add, update, delete, etc.)
-Provide AI-powered conversational help for internal CMS features
-Search docs and automate admin workflows
-The Zoota agent is not available to site visitors—admin-only functionality. Architecture and UX should keep these roles clearly separated for security, usability, and development clarity.
+### SaaS Conversational Agent for Visitors
+This agent is used for all public-facing (visitor) interaction on client websites powered by OrkinosaiCMS. It is managed as a SaaS product and is not included with the CMS codebase; this makes it ideal for monetization and feature control across all sites.
+
+### Zoota (Admin-Only) Agent ✅ IMPLEMENTED
+The Zoota chat agent is now embedded only in the CMS admin (backend) panel. It appears when admins log in and provides:
+
+**Current Capabilities:**
+- ✅ Admin-only access with authentication
+- ✅ Appears in admin panel after login
+- ✅ Conversational AI assistance powered by Azure OpenAI
+- ✅ CMS documentation and help
+- ✅ RESTful API endpoints for CMS operations
+
+**API Endpoints Available:**
+- GET/POST/PUT/DELETE `/api/zoota/cms/pages` - Page management
+- GET/POST/PUT/DELETE `/api/zoota/cms/content` - Content management
+- GET `/api/zoota/cms/users` - User listing
+
+**Future Enhancements:**
+- Direct conversational commands for creating/editing assets
+- Workflow automation suggestions
+- Advanced search and navigation
+- Image and media management
+
+The Zoota agent is not available to site visitors—admin-only functionality. Architecture and UX keep these roles clearly separated for security, usability, and development clarity.
 
 
