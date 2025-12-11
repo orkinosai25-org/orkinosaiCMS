@@ -74,6 +74,20 @@ Visit `/cms-home` to see the demo website!
 - **[Setup Guide](docs/SETUP.md)** - Detailed setup and configuration instructions
 - **[Database Guide](docs/DATABASE.md)** - Database architecture and data access patterns
 - **[Extensibility Guide](docs/EXTENSIBILITY.md)** - Creating custom modules, themes, and extensions
+- **[Logging Guide](docs/LOGGING.md)** - Serilog logging configuration, troubleshooting, and best practices
+
+### SaaS & Multi-Tenancy
+- **[SaaS Compatibility Guide](docs/SAAS_COMPATIBILITY.md)** - Transform OrkinosaiCMS into a multi-tenant SaaS platform
+- **[SaaS Features Overview](docs/SaaS_FEATURES.md)** - Detailed feature comparison and roadmap
+- **[Onboarding Guide](docs/ONBOARDING.md)** - Complete user journey from sign-up to launch
+- **[Pricing Plans](docs/pricing.md)** - Complete pricing guide with plan comparisons
+- **[Site Management API](docs/SITE_MANAGEMENT_API.md)** - API documentation for creating and managing sites
+
+### Payment & Storage Integration
+- **[Stripe Setup Guide](docs/STRIPE_SETUP.md)** - Complete guide for configuring Stripe payment integration
+- **[Stripe Quick Start](docs/STRIPE_QUICK_START.md)** - Quick reference for Stripe integration
+- **[Azure Blob Storage](docs/AZURE_BLOB_STORAGE.md)** - Media storage, security, and usage guide
+- **[Application Settings](docs/appsettings.md)** - Configuration guide for appsettings.json and Azure Key Vault
 
 ### Migration & Deployment
 - **[Migration Guide](docs/MIGRATION.md)** - Migrating from Oqtane v10
@@ -166,6 +180,47 @@ OrkinosaiCMS implements a SharePoint-inspired permission system:
 | Target Version | .NET 10 | .NET 8/9 |
 
 See [Migration Guide](docs/MIGRATION.md) for detailed comparison.
+
+## 🔧 SaaS Compatibility & Configuration
+
+OrkinosaiCMS is designed to be the master CMS repository with full support for both single-tenant and multi-tenant SaaS deployments.
+
+### Environment Configuration
+
+A comprehensive `.env.example` file is provided with all necessary configuration options:
+
+- **Payment Integration**: Stripe API keys for subscription management
+- **Storage**: Azure Blob Storage connection strings for media/assets
+- **Database**: Connection string examples for LocalDB, SQL Server, and Azure SQL
+- **Authentication**: JWT secrets and OAuth provider configuration
+- **Email**: SendGrid API keys for transactional emails
+- **AI Services**: Azure OpenAI endpoints for AI-powered features
+
+Copy `.env.example` to `.env` and configure with your actual values:
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration values
+```
+
+**Important**: Never commit the `.env` file to version control. It's already included in `.gitignore`.
+
+### Multi-Tenant SaaS Setup
+
+To transform OrkinosaiCMS into a multi-tenant SaaS platform, see the comprehensive [SaaS Compatibility Guide](docs/SAAS_COMPATIBILITY.md) which covers:
+
+1. **Database & Multi-Tenancy**: Tenant identification strategies and data isolation
+2. **Authentication & Authorization**: OAuth providers and tenant-scoped users
+3. **Branding & Theming**: Professional themes and tenant-specific customization
+4. **Configuration Management**: Azure Key Vault integration and feature flags
+5. **Payment Integration**: Stripe subscription management
+6. **User Onboarding**: Streamlined sign-up and guided setup wizard
+7. **API & Webhooks**: Public REST API and event notifications
+8. **Analytics & Monitoring**: Application Insights and usage tracking
+9. **Domain Management**: Custom domains and SSL certificate provisioning
+10. **AI Agent Enhancement**: Customer-facing and admin AI assistants
+
+For detailed configuration options, see [Application Settings Guide](docs/appsettings.md).
 
 ## 🛣️ Roadmap
 
