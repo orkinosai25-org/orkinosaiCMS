@@ -1,12 +1,16 @@
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 @using OrkinosaiCMS.Web.Services
+@using OrkinosaiCMS.Web.Components.Shared
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 
 <CascadingAuthenticationState>
     <AuthorizeView Roles="Administrator">
         <Authorized>
+            @* Display failsafe warning banner if active *@
+            <FailsafeWarningBanner />
+            
             <div class="admin-layout">
                 <div class="admin-sidebar">
                     <div class="admin-logo">

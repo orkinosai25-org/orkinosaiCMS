@@ -6,20 +6,26 @@ using OrkinosaiCMS.Core.Interfaces.Services;
 namespace OrkinosaiCMS.Web.Services;
 
 /// <summary>
-/// Custom authentication state provider for admin users
+/// Custom authentication state provider for admin users with JWT token validation
 /// </summary>
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly ProtectedSessionStorage _sessionStorage;
     private readonly IUserService _userService;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly ILogger<CustomAuthenticationStateProvider> _logger;
     private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
     public CustomAuthenticationStateProvider(
         ProtectedSessionStorage sessionStorage,
-        IUserService userService)
+        IUserService userService,
+        IJwtTokenService jwtTokenService,
+        ILogger<CustomAuthenticationStateProvider> logger)
     {
         _sessionStorage = sessionStorage;
         _userService = userService;
+        _jwtTokenService = jwtTokenService;
+        _logger = logger;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -34,18 +40,42 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
             var userSession = userSessionResult.Value;
             
-            // Verify user still exists and is active
-            var user = await _userService.GetByIdAsync(userSession.UserId);
-            if (user == null || !user.IsActive || user.IsDeleted)
+            // Validate JWT token
+            if (!string.IsNullOrEmpty(userSession.JwtToken))
             {
-                return await Task.FromResult(new AuthenticationState(_anonymous));
+                var principal = _jwtTokenService.ValidateToken(userSession.JwtToken);
+                if (principal != null)
+                {
+                    // JWT is valid
+                    // If not failsafe mode, verify user still exists and is active
+                    if (!userSession.IsFailsafeMode)
+                    {
+                        try
+                        {
+                            var user = await _userService.GetByIdAsync(userSession.UserId);
+                            if (user == null || !user.IsActive || user.IsDeleted)
+                            {
+                                _logger.LogWarning("User {UserId} is no longer valid, invalidating session", userSession.UserId);
+                                return await Task.FromResult(new AuthenticationState(_anonymous));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Could not verify user {UserId}, database may be unavailable", userSession.UserId);
+                            // If database is unavailable but JWT is valid, allow access
+                        }
+                    }
+                    
+                    return await Task.FromResult(new AuthenticationState(principal));
+                }
             }
-
-            var claimsPrincipal = CreateClaimsPrincipal(userSession);
-            return await Task.FromResult(new AuthenticationState(claimsPrincipal));
+            
+            // Token invalid or missing
+            return await Task.FromResult(new AuthenticationState(_anonymous));
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error getting authentication state");
             return await Task.FromResult(new AuthenticationState(_anonymous));
         }
     }
@@ -57,7 +87,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         if (userSession != null)
         {
             await _sessionStorage.SetAsync("UserSession", userSession);
-            claimsPrincipal = CreateClaimsPrincipal(userSession);
+            
+            // Validate JWT and create principal
+            if (!string.IsNullOrEmpty(userSession.JwtToken))
+            {
+                var principal = _jwtTokenService.ValidateToken(userSession.JwtToken);
+                claimsPrincipal = principal ?? _anonymous;
+            }
+            else
+            {
+                claimsPrincipal = _anonymous;
+            }
         }
         else
         {
@@ -68,6 +108,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
     }
 
+    // Keep for backward compatibility but not used with JWT
     private ClaimsPrincipal CreateClaimsPrincipal(UserSession userSession)
     {
         var claimsIdentity = new ClaimsIdentity(new List<Claim>
@@ -78,6 +119,11 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             new Claim("DisplayName", userSession.DisplayName),
             new Claim(ClaimTypes.Role, userSession.Role)
         }, "CustomAuth");
+
+        if (userSession.IsFailsafeMode)
+        {
+            claimsIdentity.AddClaim(new Claim("FailsafeMode", "true"));
+        }
 
         return new ClaimsPrincipal(claimsIdentity);
     }
@@ -90,4 +136,6 @@ public class UserSession
     public string Email { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Role { get; set; } = "User";
+    public string JwtToken { get; set; } = string.Empty;
+    public bool IsFailsafeMode { get; set; }
 }

@@ -1,0 +1,113 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (isFailsafeMode)
+{
+    <div class="failsafe-warning-banner">
+        <div class="failsafe-content">
+            <div class="failsafe-icon">⚠️</div>
+            <div class="failsafe-text">
+                <strong>FAILSAFE MODE ACTIVE</strong>
+                <p>You are logged in using emergency admin credentials. Database or configuration may be unavailable. This mode should only be used for troubleshooting and initial setup.</p>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .failsafe-warning-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        color: white;
+        padding: 16px 24px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        animation: slideDown 0.5s ease-out;
+    }
+
+    .failsafe-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .failsafe-icon {
+        font-size: 32px;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+    }
+
+    .failsafe-text {
+        flex: 1;
+    }
+
+    .failsafe-text strong {
+        font-size: 18px;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .failsafe-text p {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.95;
+    }
+
+    @@keyframes slideDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    /* Adjust body padding when banner is active */
+    body.failsafe-active {
+        padding-top: 90px;
+    }
+</style>
+
+@code {
+    private bool isFailsafeMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckFailsafeModeAsync();
+    }
+
+    private async Task CheckFailsafeModeAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated ?? false)
+            {
+                var failsafeClaim = user.FindFirst("FailsafeMode");
+                isFailsafeMode = failsafeClaim?.Value == "true";
+            }
+        }
+        catch
+        {
+            isFailsafeMode = false;
+        }
+    }
+}
