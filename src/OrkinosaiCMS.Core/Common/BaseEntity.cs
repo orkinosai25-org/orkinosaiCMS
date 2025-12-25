@@ -34,4 +34,9 @@ public abstract class BaseEntity
     /// Soft delete flag
     /// </summary>
     public bool IsDeleted { get; set; }
+    
+    /// <summary>
+    /// Date and time when the entity was deleted (for soft delete)
+    /// </summary>
+    public DateTime? DeletedOn { get; set; }
 }

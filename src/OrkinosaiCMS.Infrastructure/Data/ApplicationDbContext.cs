@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using OrkinosaiCMS.Core.Entities.Identity;
 using OrkinosaiCMS.Core.Entities.Sites;
+using OrkinosaiCMS.Core.Entities.Subscriptions;
 
 namespace OrkinosaiCMS.Infrastructure.Data;
 
 /// <summary>
-/// Main database context for the OrkinosaiCMS
+/// Main database context for the OrkinosaiCMS with ASP.NET Core Identity integration
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -25,15 +29,22 @@ public class ApplicationDbContext : DbContext
     // Themes
     public DbSet<Theme> Themes => Set<Theme>();
 
-    // Users and Permissions
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Role> Roles => Set<Role>();
+    // Users and Permissions (Legacy - will coexist with Identity)
+    // Named differently to avoid conflicts with Identity tables
+    public DbSet<User> CmsUsers => Set<User>();
+    public DbSet<Role> CmsRoles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
-    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<UserRole> CmsUserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     // Content
     public DbSet<Content> Contents => Set<Content>();
+
+    // Subscriptions
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +53,7 @@ public class ApplicationDbContext : DbContext
         // Apply configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Configure soft delete filter
+        // Configure soft delete filters
         modelBuilder.Entity<Site>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Page>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<MasterPage>().HasQueryFilter(e => !e.IsDeleted);
@@ -55,6 +66,15 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Content>().HasQueryFilter(e => !e.IsDeleted);
+        
+        // Subscription entities soft delete filters
+        modelBuilder.Entity<Customer>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Subscription>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Invoice>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<PaymentMethod>().HasQueryFilter(e => !e.IsDeleted);
+        
+        // Identity entities soft delete filter
+        modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
