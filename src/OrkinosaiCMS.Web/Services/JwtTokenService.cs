@@ -25,7 +25,8 @@ public class JwtTokenService : IJwtTokenService
         _logger = logger;
 
         // Auto-provision JWT signing key if missing (for dev/test/failsafe mode)
-        _secretKey = _configuration["Jwt:Secret"] ?? GenerateDefaultSecret();
+        var configuredSecret = _configuration["Jwt:Secret"];
+        _secretKey = string.IsNullOrWhiteSpace(configuredSecret) ? GenerateDefaultSecret() : configuredSecret;
         _issuer = _configuration["Jwt:Issuer"] ?? "OrkinosaiCMS";
         _audience = _configuration["Jwt:Audience"] ?? "OrkinosaiCMS";
         

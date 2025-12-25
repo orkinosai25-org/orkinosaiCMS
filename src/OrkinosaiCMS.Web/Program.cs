@@ -23,7 +23,7 @@ builder.Services.AddControllers();
 // Configure JWT Authentication
 // Auto-provision JWT secret if not configured (for dev/test/failsafe mode)
 var jwtSecret = builder.Configuration["Jwt:Secret"];
-if (string.IsNullOrEmpty(jwtSecret))
+if (string.IsNullOrWhiteSpace(jwtSecret))
 {
     jwtSecret = "OrkinosaiCMS-Dev-Secret-Key-DO-NOT-USE-IN-PRODUCTION-" + Guid.Parse("12345678-1234-1234-1234-123456789012").ToString();
     // Log warning during startup (will be logged once application starts)

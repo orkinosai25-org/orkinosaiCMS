@@ -1,4 +1,5 @@
 @page "/admin/login"
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
 @using OrkinosaiCMS.Web.Services
 @inject IAuthenticationService AuthService
@@ -20,7 +21,7 @@
             </div>
         }
 
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" class="login-form">
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="LoginForm" class="login-form">
             <DataAnnotationsValidator />
             
             <div class="form-group">
@@ -196,9 +197,15 @@
 </style>
 
 @code {
-    private LoginModel loginModel = new();
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = null!;
     private string errorMessage = string.Empty;
     private bool isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        loginModel ??= new LoginModel();
+    }
 
     private class LoginModel
     {
@@ -220,7 +227,8 @@
 
             if (success)
             {
-                NavigationManager.NavigateTo("/admin", true);
+                // Don't force reload - let Blazor handle state change
+                NavigationManager.NavigateTo("/admin");
             }
             else
             {
