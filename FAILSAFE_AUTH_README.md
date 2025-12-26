@@ -58,7 +58,7 @@ Add these settings to `appsettings.json`:
 
 When failsafe mode is enabled, you can log in with:
 - **Username:** `admin`
-- **Password:** `password123`
+- **Password:** `Admin@123`
 
 ⚠️ **Security Warning:** These credentials are hardcoded in the application. They provide full administrator access and should ONLY be used for:
 1. Initial setup on a fresh installation
@@ -78,7 +78,7 @@ When failsafe mode is enabled, you can log in with:
 ### Failsafe Mode (Database Unavailable)
 
 1. System detects database is unavailable
-2. Login accepts failsafe credentials (`admin` / `password123`)
+2. Login accepts failsafe credentials (`admin` / `Admin@123`)
 3. JWT token is generated with failsafe flag
 4. Red warning banner appears in admin area
 5. Full admin access is granted for troubleshooting
@@ -153,7 +153,7 @@ export Jwt__Secret="your-production-secret-key-minimum-32-chars"
 **Method 1 - Stop Database:**
 1. Stop your SQL Server instance
 2. Navigate to `/admin/login`
-3. Enter failsafe credentials: `admin` / `password123`
+3. Enter failsafe credentials: `admin` / `Admin@123`
 4. Should redirect to admin dashboard
 5. Red warning banner should appear
 
@@ -161,7 +161,7 @@ export Jwt__Secret="your-production-secret-key-minimum-32-chars"
 1. Temporarily change connection string to invalid value
 2. Restart application
 3. Navigate to `/admin/login`
-4. Enter failsafe credentials: `admin` / `password123`
+4. Enter failsafe credentials: `admin` / `Admin@123`
 5. Should redirect to admin dashboard
 6. Red warning banner should appear
 

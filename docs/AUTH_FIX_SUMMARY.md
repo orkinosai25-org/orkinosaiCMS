@@ -55,7 +55,7 @@ Look for these log messages on startup:
 
 ## Failsafe Mode
 Remember, you also have failsafe mode available:
-- Credentials: `admin` / `password123`
+- Credentials: `admin` / `Admin@123`
 - Enabled by default in `appsettings.json` (`Authentication:FailsafeMode:Enabled = true`)
 - Provides emergency access if database is completely unavailable
 

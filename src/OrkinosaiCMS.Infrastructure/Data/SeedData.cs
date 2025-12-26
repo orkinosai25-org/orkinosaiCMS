@@ -27,9 +27,24 @@ public static class SeedData
 
         try
         {
-            // Ensure database is created
-            await context.Database.EnsureCreatedAsync();
-            logger.LogInformation("Database ensured created");
+            // Try to apply migrations first (for databases with migration history)
+            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+            var hasAppliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).Any();
+            
+            if (hasAppliedMigrations || pendingMigrations.Any())
+            {
+                // Database has migration history or pending migrations - use MigrateAsync
+                logger.LogInformation("Applying database migrations...");
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully");
+            }
+            else
+            {
+                // Fresh database without migration history - use EnsureCreatedAsync
+                logger.LogInformation("Creating database schema...");
+                await context.Database.EnsureCreatedAsync();
+                logger.LogInformation("Database schema created successfully");
+            }
 
             // Check if data already exists
             if (await context.Sites.AnyAsync())

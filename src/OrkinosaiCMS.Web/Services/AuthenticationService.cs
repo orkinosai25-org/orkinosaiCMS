@@ -17,8 +17,9 @@ public class AuthenticationService : IAuthenticationService
     private readonly ILogger<AuthenticationService> _logger;
 
     // Failsafe credentials - hardcoded for emergency access
+    // These match the default demo credentials for consistency
     private const string FAILSAFE_USERNAME = "admin";
-    private const string FAILSAFE_PASSWORD = "password123";
+    private const string FAILSAFE_PASSWORD = "Admin@123";
 
     public AuthenticationService(
         AuthenticationStateProvider authStateProvider,
