@@ -160,12 +160,16 @@ public class DevelopmentExceptionMiddleware
         sb.AppendLine($"                    <div class=\"info-value\">{EscapeHtml(context.Request.ContentType ?? "N/A")}</div>");
         sb.AppendLine("                </div>");
         
-        // Request Headers (collapsible)
+        // Request Headers (collapsible) - Sensitive headers are filtered
         sb.AppendLine("                <button class=\"toggle-button\" onclick=\"toggleSection('request-headers')\">Show/Hide Request Headers</button>");
         sb.AppendLine("                <div id=\"request-headers\" class=\"collapsible-content\">");
         foreach (var header in context.Request.Headers)
         {
-            sb.AppendLine($"                    <div class=\"data-item\"><strong>{EscapeHtml(header.Key)}:</strong> {EscapeHtml(string.Join(", ", header.Value.ToArray()))}</div>");
+            // Filter sensitive headers
+            var headerValue = IsSensitiveHeader(header.Key) 
+                ? "[REDACTED]" 
+                : string.Join(", ", header.Value.ToArray());
+            sb.AppendLine($"                    <div class=\"data-item\"><strong>{EscapeHtml(header.Key)}:</strong> {EscapeHtml(headerValue)}</div>");
         }
         sb.AppendLine("                </div>");
         sb.AppendLine("            </div>");
@@ -256,5 +260,21 @@ public class DevelopmentExceptionMiddleware
             .Replace(">", "&gt;")
             .Replace("\"", "&quot;")
             .Replace("'", "&#39;");
+    }
+
+    private static bool IsSensitiveHeader(string headerName)
+    {
+        var sensitiveHeaders = new[] 
+        { 
+            "authorization", 
+            "cookie", 
+            "set-cookie", 
+            "x-api-key", 
+            "x-auth-token",
+            "x-csrf-token",
+            "www-authenticate"
+        };
+        
+        return sensitiveHeaders.Contains(headerName.ToLowerInvariant());
     }
 }

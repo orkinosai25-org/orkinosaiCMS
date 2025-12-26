@@ -154,6 +154,8 @@ public class AuthenticationService : IAuthenticationService
                 username, ex.GetType().Name, ex.Message);
             
             // Try failsafe as last resort if enabled
+            // Note: Exception is re-thrown only for development error display
+            // The middleware checks environment/config before showing detailed errors
             var failsafeModeEnabled = _configuration.GetValue<bool>("Authentication:FailsafeMode:Enabled", true);
             if (failsafeModeEnabled && username == FAILSAFE_USERNAME && password == FAILSAFE_PASSWORD)
             {
@@ -161,7 +163,7 @@ public class AuthenticationService : IAuthenticationService
                 return await LoginWithFailsafeAsync();
             }
             
-            throw; // Re-throw to allow detailed error display in development mode
+            throw; // Re-throw for development error display - middleware will handle security
         }
     }
 
