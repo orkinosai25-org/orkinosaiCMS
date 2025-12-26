@@ -474,13 +474,6 @@ public static class SeedData
 
     private static async Task SeedAdminUserAsync(ApplicationDbContext context)
     {
-        // Check if admin user already exists
-        var adminUser = await context.CmsUsers.FirstOrDefaultAsync(u => u.Username == "admin");
-        if (adminUser != null)
-        {
-            return; // Admin user already exists
-        }
-
         // Ensure Administrator role exists
         var adminRole = await context.CmsRoles.FirstOrDefaultAsync(r => r.Name == "Administrator");
         if (adminRole == null)
@@ -488,7 +481,65 @@ public static class SeedData
             throw new InvalidOperationException("Administrator role not found. Ensure SeedPermissionsAndRolesAsync() is called before SeedAdminUserAsync().");
         }
 
-        // Create admin user with BCrypt hashed password
+        // Check if admin user already exists
+        var adminUser = await context.CmsUsers.FirstOrDefaultAsync(u => u.Username == "admin");
+        
+        if (adminUser != null)
+        {
+            // Admin user exists - verify and fix if needed
+            bool needsUpdate = false;
+            
+            // Ensure user is active
+            if (!adminUser.IsActive)
+            {
+                adminUser.IsActive = true;
+                needsUpdate = true;
+            }
+            
+            // Ensure user is not deleted
+            if (adminUser.IsDeleted)
+            {
+                adminUser.IsDeleted = false;
+                adminUser.DeletedOn = null;
+                needsUpdate = true;
+            }
+            
+            // Verify password is correct by attempting to verify it
+            // If verification fails, reset the password to Admin@123
+            if (!BCrypt.Net.BCrypt.Verify("Admin@123", adminUser.PasswordHash))
+            {
+                // Password is incorrect or corrupt - reset it
+                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                adminUser.ModifiedOn = DateTime.UtcNow;
+                adminUser.ModifiedBy = "System";
+                needsUpdate = true;
+            }
+            
+            if (needsUpdate)
+            {
+                context.CmsUsers.Update(adminUser);
+            }
+            
+            // Ensure admin role is assigned
+            var hasAdminRole = await context.CmsUserRoles
+                .AnyAsync(ur => ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
+                
+            if (!hasAdminRole)
+            {
+                var userRole = new UserRole
+                {
+                    UserId = adminUser.Id,
+                    RoleId = adminRole.Id,
+                    CreatedOn = DateTime.UtcNow,
+                    CreatedBy = "System"
+                };
+                context.CmsUserRoles.Add(userRole);
+            }
+            
+            return; // Admin user exists and has been verified/fixed
+        }
+
+        // Admin user doesn't exist - create it
         // Password: Admin@123
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
         
@@ -499,6 +550,7 @@ public static class SeedData
             DisplayName = "Administrator",
             PasswordHash = hashedPassword,
             IsActive = true,
+            IsDeleted = false,
             CreatedOn = DateTime.UtcNow,
             CreatedBy = "System"
         };
@@ -506,7 +558,7 @@ public static class SeedData
         context.CmsUsers.Add(newAdminUser);
         
         // Assign Administrator role to the user
-        var userRole = new UserRole
+        var newUserRole = new UserRole
         {
             User = newAdminUser,
             RoleId = adminRole.Id,
@@ -514,7 +566,7 @@ public static class SeedData
             CreatedBy = "System"
         };
 
-        context.CmsUserRoles.Add(userRole);
+        context.CmsUserRoles.Add(newUserRole);
         // SaveChanges will be called by the parent InitializeAsync method
     }
 }
