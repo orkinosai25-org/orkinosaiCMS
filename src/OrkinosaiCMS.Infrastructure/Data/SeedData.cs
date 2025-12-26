@@ -33,6 +33,7 @@ public static class SeedData
         await SeedModulesAsync(context);
         await SeedPagesAsync(context);
         await SeedPermissionsAndRolesAsync(context);
+        await SeedAdminUserAsync(context);
 
         await context.SaveChangesAsync();
     }
@@ -469,5 +470,51 @@ public static class SeedData
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAdminUserAsync(ApplicationDbContext context)
+    {
+        // Check if admin user already exists
+        var adminUser = await context.CmsUsers.FirstOrDefaultAsync(u => u.Username == "admin");
+        if (adminUser != null)
+        {
+            return; // Admin user already exists
+        }
+
+        // Ensure Administrator role exists
+        var adminRole = await context.CmsRoles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        if (adminRole == null)
+        {
+            throw new InvalidOperationException("Administrator role not found. Ensure SeedPermissionsAndRolesAsync() is called before SeedAdminUserAsync().");
+        }
+
+        // Create admin user with BCrypt hashed password
+        // Password: Admin@123
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+        
+        var newAdminUser = new User
+        {
+            Username = "admin",
+            Email = "admin@orkinosaicms.local",
+            DisplayName = "Administrator",
+            PasswordHash = hashedPassword,
+            IsActive = true,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        context.CmsUsers.Add(newAdminUser);
+        
+        // Assign Administrator role to the user
+        var userRole = new UserRole
+        {
+            User = newAdminUser,
+            RoleId = adminRole.Id,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        context.CmsUserRoles.Add(userRole);
+        // SaveChanges will be called by the parent InitializeAsync method
     }
 }

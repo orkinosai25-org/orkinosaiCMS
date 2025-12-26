@@ -145,6 +145,20 @@ The application will be available at:
 - HTTP: `http://localhost:5000`
 - HTTPS: `https://localhost:5001`
 
+### 7. Access the Admin Panel
+
+On first run, the database is automatically seeded with:
+- Default themes and layouts
+- Sample pages and modules
+- Roles and permissions
+- **Default admin user**
+
+Navigate to `https://localhost:5001/admin/login` and sign in with:
+- **Username:** `admin`
+- **Password:** `Admin@123`
+
+**Note:** For production deployments, you should immediately change this password or disable the seeded admin user and create your own admin account.
+
 ## Visual Studio Setup
 
 ### 1. Open Solution
