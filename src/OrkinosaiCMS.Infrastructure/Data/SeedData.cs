@@ -510,9 +510,26 @@ public static class SeedData
             
             // Verify password is correct by attempting to verify it
             // If verification fails, reset the password to the demo admin password
-            if (!BCrypt.Net.BCrypt.Verify(DEMO_ADMIN_PASSWORD, adminUser.PasswordHash))
+            bool passwordNeedsReset = false;
+            
+            try
             {
-                // Password is incorrect or corrupt - reset it
+                // Check if password hash is null, empty, or verification fails
+                if (string.IsNullOrEmpty(adminUser.PasswordHash) || 
+                    !BCrypt.Net.BCrypt.Verify(DEMO_ADMIN_PASSWORD, adminUser.PasswordHash))
+                {
+                    passwordNeedsReset = true;
+                }
+            }
+            catch
+            {
+                // If BCrypt.Verify throws (malformed hash), reset password
+                passwordNeedsReset = true;
+            }
+            
+            if (passwordNeedsReset)
+            {
+                // Password is incorrect, missing, or corrupt - reset it
                 adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DEMO_ADMIN_PASSWORD);
                 adminUser.ModifiedOn = DateTime.UtcNow;
                 adminUser.ModifiedBy = "System";
