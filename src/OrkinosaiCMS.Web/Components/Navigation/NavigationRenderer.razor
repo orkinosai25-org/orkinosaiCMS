@@ -104,6 +104,7 @@
         }
         catch (Exception ex)
         {
+            // TODO: Add ILogger dependency and use proper logging
             Console.WriteLine($"Error loading navigation: {ex.Message}");
             items = new List<NavigationItem>();
         }

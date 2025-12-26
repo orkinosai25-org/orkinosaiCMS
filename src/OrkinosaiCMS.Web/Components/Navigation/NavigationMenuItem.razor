@@ -149,7 +149,11 @@
 
     private bool IsActive()
     {
-        var currentUrl = NavManager.Uri;
-        return currentUrl.EndsWith(Item.Url, StringComparison.OrdinalIgnoreCase);
+        var currentUrl = NavManager.ToBaseRelativePath(NavManager.Uri);
+        var itemUrl = Item.Url.TrimStart('/');
+        
+        // Exact match or if item URL matches the start of current URL followed by /
+        return currentUrl.Equals(itemUrl, StringComparison.OrdinalIgnoreCase) ||
+               (currentUrl.StartsWith(itemUrl + "/", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(itemUrl));
     }
 }
