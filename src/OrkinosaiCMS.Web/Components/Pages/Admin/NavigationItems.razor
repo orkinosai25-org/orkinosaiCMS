@@ -1,0 +1,466 @@
+@page "/admin/navigation/{MenuId:int}/items"
+@attribute [Authorize(Roles = "Administrator")]
+@layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
+@using Microsoft.AspNetCore.Authorization
+@using OrkinosaiCMS.Core.Entities.Navigation
+@using OrkinosaiCMS.Core.Interfaces.Services
+@using OrkinosaiCMS.Web.Components.Admin
+@inject INavigationService NavigationService
+@inject NavigationManager NavManager
+
+<PageTitle>Manage Navigation Items - OrkinosaiCMS</PageTitle>
+
+<div class="nav-items-page">
+    <div class="page-header">
+        <div>
+            <button class="btn-back" @onclick="GoBack">← Back to Menus</button>
+            <h1>@(menu?.Title ?? "Navigation Items")</h1>
+            <p>Manage navigation items and structure</p>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddItemEditor">
+            <span>➕</span> Add Item
+        </button>
+    </div>
+
+    @if (items == null)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading navigation items...</p>
+        </div>
+    }
+    else if (!items.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h3>No navigation items yet</h3>
+            <p>Add your first navigation item to build the menu</p>
+            <button class="btn-primary" @onclick="ShowAddItemEditor">
+                Add Item
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="items-tree">
+            @foreach (var item in items.Where(i => i.ParentId == null).OrderBy(i => i.Order))
+            {
+                <NavigationItemNode Item="@item" 
+                                   AllItems="@items" 
+                                   OnEdit="EditItem" 
+                                   OnDelete="DeleteItem"
+                                   OnAddChild="AddChildItem" />
+            }
+        </div>
+    }
+
+    @if (showItemEditor)
+    {
+        <div class="modal-overlay" @onclick="CloseItemEditor">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>@(editingItem?.Id > 0 ? "Edit Navigation Item" : "Add Navigation Item")</h2>
+                    <button class="btn-close" @onclick="CloseItemEditor">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Label *</label>
+                        <input type="text" class="form-control" @bind="editingItem!.Label" placeholder="e.g., Home" />
+                    </div>
+                    <div class="form-group">
+                        <label>URL *</label>
+                        <input type="text" class="form-control" @bind="editingItem!.Url" placeholder="e.g., /home or https://external.com" />
+                    </div>
+                    <div class="form-group">
+                        <label>Icon CSS Class</label>
+                        <input type="text" class="form-control" @bind="editingItem!.IconCssClass" placeholder="e.g., fas fa-home, bi bi-house" />
+                    </div>
+                    <div class="form-group">
+                        <label>Order</label>
+                        <input type="number" class="form-control" @bind="editingItem!.Order" min="0" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description (tooltip)</label>
+                        <input type="text" class="form-control" @bind="editingItem!.Description" placeholder="Optional tooltip text" />
+                    </div>
+                    <div class="form-group">
+                        <label>CSS Class</label>
+                        <input type="text" class="form-control" @bind="editingItem!.CssClass" placeholder="Optional CSS classes" />
+                    </div>
+                    <div class="form-group">
+                        <label>Required Roles (comma-separated)</label>
+                        <input type="text" class="form-control" @bind="editingItem!.RequiredRoles" placeholder="e.g., Administrator,Editor" />
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" @bind="editingItem!.IsEnabled" />
+                            <span>Item is enabled</span>
+                        </label>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" @bind="editingItem!.OpenInNewWindow" />
+                            <span>Open in new window</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseItemEditor">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveItem">Save Item</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .nav-items-page {
+        padding: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .btn-back {
+        background: #f1f5f9;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #475569;
+        font-weight: 500;
+        margin-bottom: 12px;
+        transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+        background: #e2e8f0;
+    }
+
+    .page-header h1 {
+        color: #1e293b;
+        font-size: 32px;
+        margin: 0 0 8px 0;
+    }
+
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+    }
+
+    .btn-primary {
+        background: #0078D4;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #005a9e;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #0078D4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-icon {
+        font-size: 80px;
+        margin-bottom: 24px;
+    }
+
+    .empty-state h3 {
+        color: #1e293b;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 24px;
+    }
+
+    .items-tree {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 24px;
+        color: #1e293b;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .btn-close:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0078D4;
+        box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+    }
+
+    .checkbox-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-weight: normal;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int MenuId { get; set; }
+
+    private NavigationMenu? menu;
+    private List<NavigationItem>? items;
+    private bool showItemEditor = false;
+    private NavigationItem? editingItem;
+    private int? editingParentId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        menu = await NavigationService.GetMenuByIdAsync(MenuId);
+        var allItems = await NavigationService.GetItemsByMenuAsync(MenuId);
+        items = allItems.ToList();
+    }
+
+    private void GoBack()
+    {
+        NavManager.NavigateTo("/admin/navigation");
+    }
+
+    private void ShowAddItemEditor()
+    {
+        editingParentId = null;
+        editingItem = new NavigationItem
+        {
+            MenuId = MenuId,
+            ParentId = null,
+            IsEnabled = true,
+            Order = items?.Count(i => i.ParentId == null) ?? 0
+        };
+        showItemEditor = true;
+    }
+
+    private void AddChildItem(int? parentId)
+    {
+        editingParentId = parentId;
+        editingItem = new NavigationItem
+        {
+            MenuId = MenuId,
+            ParentId = parentId,
+            IsEnabled = true,
+            Order = items?.Count(i => i.ParentId == parentId) ?? 0
+        };
+        showItemEditor = true;
+    }
+
+    private void EditItem(NavigationItem item)
+    {
+        editingItem = new NavigationItem
+        {
+            Id = item.Id,
+            MenuId = item.MenuId,
+            ParentId = item.ParentId,
+            Label = item.Label,
+            Url = item.Url,
+            IconCssClass = item.IconCssClass,
+            Order = item.Order,
+            IsEnabled = item.IsEnabled,
+            OpenInNewWindow = item.OpenInNewWindow,
+            CssClass = item.CssClass,
+            Description = item.Description,
+            RequiredRoles = item.RequiredRoles
+        };
+        showItemEditor = true;
+    }
+
+    private void CloseItemEditor()
+    {
+        showItemEditor = false;
+        editingItem = null;
+        editingParentId = null;
+    }
+
+    private async Task SaveItem()
+    {
+        if (editingItem == null) return;
+
+        try
+        {
+            if (editingItem.Id > 0)
+            {
+                await NavigationService.UpdateItemAsync(editingItem);
+            }
+            else
+            {
+                await NavigationService.CreateItemAsync(editingItem);
+            }
+
+            await LoadData();
+            CloseItemEditor();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving item: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteItem(NavigationItem item)
+    {
+        await NavigationService.DeleteItemAsync(item.Id);
+        await LoadData();
+    }
+}

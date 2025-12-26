@@ -1,0 +1,632 @@
+@page "/admin/navigation"
+@attribute [Authorize(Roles = "Administrator")]
+@layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
+@using Microsoft.AspNetCore.Authorization
+@using OrkinosaiCMS.Core.Entities.Navigation
+@using OrkinosaiCMS.Core.Interfaces.Services
+@inject INavigationService NavigationService
+@inject NavigationManager NavManager
+
+<PageTitle>Navigation Management - OrkinosaiCMS</PageTitle>
+
+<div class="navigation-page">
+    <div class="page-header">
+        <div>
+            <h1>Navigation Management</h1>
+            <p>Create and manage navigation menus for your website</p>
+        </div>
+        <button class="btn-primary" @onclick="ShowCreateMenu">
+            <span>➕</span> Create Menu
+        </button>
+    </div>
+
+    @if (menus == null)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading navigation menus...</p>
+        </div>
+    }
+    else if (!menus.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">🧭</div>
+            <h3>No navigation menus yet</h3>
+            <p>Create your first navigation menu to get started</p>
+            <button class="btn-primary" @onclick="ShowCreateMenu">
+                Create Menu
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="menus-grid">
+            @foreach (var menu in menus)
+            {
+                <div class="menu-card @(!menu.IsEnabled ? "disabled" : "")">
+                    <div class="menu-header">
+                        <div>
+                            <h3>@menu.Title</h3>
+                            <span class="menu-name">@menu.Name</span>
+                        </div>
+                        <div class="menu-badge @(menu.IsEnabled ? "active" : "inactive")">
+                            @(menu.IsEnabled ? "Active" : "Inactive")
+                        </div>
+                    </div>
+                    <p class="menu-description">@menu.Description</p>
+                    <div class="menu-meta">
+                        <span class="meta-item">
+                            <strong>Location:</strong> @menu.Location
+                        </span>
+                        <span class="meta-item">
+                            <strong>Max Depth:</strong> @menu.MaxDepth levels
+                        </span>
+                        <span class="meta-item">
+                            <strong>Items:</strong> @(menuItemCounts.ContainsKey(menu.Id) ? menuItemCounts[menu.Id] : 0)
+                        </span>
+                    </div>
+                    <div class="menu-actions">
+                        <button class="btn-action manage" @onclick="() => ManageItems(menu.Id)">
+                            📝 Manage Items
+                        </button>
+                        <button class="btn-action edit" @onclick="() => EditMenu(menu)">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn-action toggle" @onclick="() => ToggleMenu(menu)">
+                            @(menu.IsEnabled ? "⏸️ Disable" : "▶️ Enable")
+                        </button>
+                        <button class="btn-action delete" @onclick="() => DeleteMenu(menu)">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (showMenuEditor)
+    {
+        <div class="modal-overlay" @onclick="CloseMenuEditor">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>@(editingMenu?.Id > 0 ? "Edit Menu" : "Create Menu")</h2>
+                    <button class="btn-close" @onclick="CloseMenuEditor">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Menu Name (unique identifier)</label>
+                        <input type="text" class="form-control" @bind="editingMenu!.Name" placeholder="e.g., TopNavigation" />
+                    </div>
+                    <div class="form-group">
+                        <label>Display Title</label>
+                        <input type="text" class="form-control" @bind="editingMenu!.Title" placeholder="e.g., Top Navigation" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" @bind="editingMenu!.Description" rows="3" placeholder="Optional description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <select class="form-control" @bind="editingMenu!.Location">
+                            <option value="Top">Top</option>
+                            <option value="Left">Left</option>
+                            <option value="Right">Right</option>
+                            <option value="Footer">Footer</option>
+                            <option value="QuickLaunch">Quick Launch</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Maximum Depth</label>
+                        <input type="number" class="form-control" @bind="editingMenu!.MaxDepth" min="1" max="5" />
+                    </div>
+                    <div class="form-group">
+                        <label>CSS Class (optional)</label>
+                        <input type="text" class="form-control" @bind="editingMenu!.CssClass" placeholder="e.g., navbar-primary" />
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" @bind="editingMenu!.IsEnabled" />
+                            <span>Menu is enabled</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseMenuEditor">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveMenu">Save Menu</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .navigation-page {
+        padding: 30px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 32px;
+        padding-bottom: 24px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .page-header h1 {
+        color: #1e293b;
+        font-size: 32px;
+        margin: 0 0 8px 0;
+    }
+
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+    }
+
+    .btn-primary {
+        background: #0078D4;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #005a9e;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #0078D4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-icon {
+        font-size: 80px;
+        margin-bottom: 24px;
+    }
+
+    .empty-state h3 {
+        color: #1e293b;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 24px;
+    }
+
+    .menus-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 24px;
+    }
+
+    .menu-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .menu-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        transform: translateY(-4px);
+        border-color: #0078D4;
+    }
+
+    .menu-card.disabled {
+        opacity: 0.6;
+    }
+
+    .menu-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .menu-header h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    .menu-name {
+        font-size: 13px;
+        color: #64748b;
+        font-family: monospace;
+    }
+
+    .menu-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .menu-badge.active {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .menu-badge.inactive {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .menu-description {
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+        min-height: 42px;
+    }
+
+    .menu-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .meta-item {
+        color: #64748b;
+    }
+
+    .meta-item strong {
+        color: #475569;
+    }
+
+    .menu-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .btn-action {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .btn-action.manage {
+        background: #0078D4;
+        color: white;
+        grid-column: 1 / -1;
+    }
+
+    .btn-action.manage:hover {
+        background: #005a9e;
+    }
+
+    .btn-action.edit {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-action.edit:hover {
+        background: #2563eb;
+    }
+
+    .btn-action.toggle {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .btn-action.toggle:hover {
+        background: #d97706;
+    }
+
+    .btn-action.delete {
+        background: #ef4444;
+        color: white;
+        grid-column: 1 / -1;
+    }
+
+    .btn-action.delete:hover {
+        background: #dc2626;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 24px;
+        color: #1e293b;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .btn-close:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0078D4;
+        box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+    }
+
+    .checkbox-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-weight: normal;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    @@media (max-width: 768px) {
+        .menus-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-content {
+            max-height: 100vh;
+            border-radius: 0;
+        }
+    }
+</style>
+
+@code {
+    private List<NavigationMenu>? menus;
+    private Dictionary<int, int> menuItemCounts = new();
+    private bool showMenuEditor = false;
+    private NavigationMenu? editingMenu;
+    private const int DEFAULT_SITE_ID = 1; // TODO: Get from site context
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMenus();
+    }
+
+    private async Task LoadMenus()
+    {
+        var allMenus = await NavigationService.GetMenusBySiteAsync(DEFAULT_SITE_ID);
+        menus = allMenus.ToList();
+
+        // Load item counts for each menu
+        menuItemCounts.Clear();
+        foreach (var menu in menus)
+        {
+            var items = await NavigationService.GetItemsByMenuAsync(menu.Id);
+            menuItemCounts[menu.Id] = items.Count();
+        }
+    }
+
+    private void ShowCreateMenu()
+    {
+        editingMenu = new NavigationMenu
+        {
+            SiteId = DEFAULT_SITE_ID,
+            IsEnabled = true,
+            MaxDepth = 3,
+            Location = "Top"
+        };
+        showMenuEditor = true;
+    }
+
+    private void EditMenu(NavigationMenu menu)
+    {
+        editingMenu = new NavigationMenu
+        {
+            Id = menu.Id,
+            SiteId = menu.SiteId,
+            Name = menu.Name,
+            Title = menu.Title,
+            Description = menu.Description,
+            Location = menu.Location,
+            IsEnabled = menu.IsEnabled,
+            CssClass = menu.CssClass,
+            MaxDepth = menu.MaxDepth
+        };
+        showMenuEditor = true;
+    }
+
+    private void CloseMenuEditor()
+    {
+        showMenuEditor = false;
+        editingMenu = null;
+    }
+
+    private async Task SaveMenu()
+    {
+        if (editingMenu == null) return;
+
+        try
+        {
+            if (editingMenu.Id > 0)
+            {
+                await NavigationService.UpdateMenuAsync(editingMenu);
+            }
+            else
+            {
+                await NavigationService.CreateMenuAsync(editingMenu);
+            }
+
+            await LoadMenus();
+            CloseMenuEditor();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving menu: {ex.Message}");
+            // TODO: Add error notification
+        }
+    }
+
+    private async Task ToggleMenu(NavigationMenu menu)
+    {
+        menu.IsEnabled = !menu.IsEnabled;
+        await NavigationService.UpdateMenuAsync(menu);
+        await LoadMenus();
+    }
+
+    private async Task DeleteMenu(NavigationMenu menu)
+    {
+        // TODO: Add confirmation dialog
+        if (confirm($"Are you sure you want to delete the menu '{menu.Title}'? This will also delete all its items."))
+        {
+            await NavigationService.DeleteMenuAsync(menu.Id);
+            await LoadMenus();
+        }
+    }
+
+    private void ManageItems(int menuId)
+    {
+        NavManager.NavigateTo($"/admin/navigation/{menuId}/items");
+    }
+
+    private bool confirm(string message)
+    {
+        // This is a placeholder - in production, use a proper confirmation dialog
+        return true;
+    }
+}
