@@ -56,14 +56,21 @@ Add these settings to `appsettings.json`:
 
 ## Failsafe Mode Credentials
 
-When failsafe mode is enabled, you can log in with:
+**Important:** Failsafe mode now uses the same credentials as the default demo account for consistency:
 - **Username:** `admin`
 - **Password:** `Admin@123`
+
+This means you only need to remember one set of credentials. Whether the database is available or not, these credentials will work (when failsafe mode is enabled).
 
 ⚠️ **Security Warning:** These credentials are hardcoded in the application. They provide full administrator access and should ONLY be used for:
 1. Initial setup on a fresh installation
 2. Emergency access when the database is down
 3. Troubleshooting configuration issues
+
+**How It Works:**
+- When database is available: Credentials authenticate against the database (normal mode)
+- When database is unavailable: Credentials fall back to failsafe mode
+- Authentication is seamless - users don't need to know which mode is active
 
 ## Usage
 
