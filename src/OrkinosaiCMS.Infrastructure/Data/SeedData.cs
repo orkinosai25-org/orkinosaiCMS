@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OrkinosaiCMS.Core.Entities.Navigation;
 using OrkinosaiCMS.Core.Entities.Sites;
 using System.Text.Json;
 
@@ -62,6 +63,7 @@ public static class SeedData
             await SeedMasterPagesAsync(context);
             await SeedModulesAsync(context);
             await SeedPagesAsync(context);
+            await SeedNavigationAsync(context);
             await SeedPermissionsAndRolesAsync(context);
             await SeedAdminUserAsync(context);
 
@@ -757,5 +759,88 @@ public static class SeedData
 
         context.CmsUserRoles.Add(newUserRole);
         // SaveChanges will be called by the parent InitializeAsync method
+    }
+
+    private static async Task SeedNavigationAsync(ApplicationDbContext context)
+    {
+        // Create main navigation menu
+        var mainMenu = new NavigationMenu
+        {
+            SiteId = 1,
+            Name = "TopNavigation",
+            Title = "Main Navigation",
+            Description = "Primary top navigation menu",
+            Location = "Top",
+            IsEnabled = true,
+            MaxDepth = 3,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        context.NavigationMenus.Add(mainMenu);
+        await context.SaveChangesAsync(); // Save to get menu ID
+
+        // Create navigation items
+        var navItems = new List<NavigationItem>
+        {
+            new NavigationItem
+            {
+                MenuId = mainMenu.Id,
+                Label = "Home",
+                Url = "/cms-home",
+                IconCssClass = "fas fa-home",
+                Order = 0,
+                IsEnabled = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new NavigationItem
+            {
+                MenuId = mainMenu.Id,
+                Label = "About",
+                Url = "/cms-about",
+                IconCssClass = "fas fa-info-circle",
+                Order = 1,
+                IsEnabled = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new NavigationItem
+            {
+                MenuId = mainMenu.Id,
+                Label = "Features",
+                Url = "/cms-features",
+                IconCssClass = "fas fa-star",
+                Order = 2,
+                IsEnabled = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new NavigationItem
+            {
+                MenuId = mainMenu.Id,
+                Label = "Contact",
+                Url = "/cms-contact",
+                IconCssClass = "fas fa-envelope",
+                Order = 3,
+                IsEnabled = true,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            },
+            new NavigationItem
+            {
+                MenuId = mainMenu.Id,
+                Label = "Admin",
+                Url = "/admin",
+                IconCssClass = "fas fa-cog",
+                Order = 4,
+                IsEnabled = true,
+                RequiredRoles = "Administrator",
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = "System"
+            }
+        };
+
+        context.NavigationItems.AddRange(navItems);
     }
 }

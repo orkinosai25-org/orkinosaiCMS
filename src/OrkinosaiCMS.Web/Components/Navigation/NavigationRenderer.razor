@@ -1,0 +1,112 @@
+@using OrkinosaiCMS.Core.Entities.Navigation
+@using OrkinosaiCMS.Core.Interfaces.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject INavigationService NavigationService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (items != null && items.Any())
+{
+    <nav class="@CssClass navigation-menu @MenuLocation.ToLower()">
+        <ul class="nav-list">
+            @foreach (var item in items)
+            {
+                <NavigationMenuItem Item="@item" MaxDepth="@MaxDepth" CurrentDepth="1" />
+            }
+        </ul>
+    </nav>
+}
+
+<style>
+    .navigation-menu {
+        padding: 0;
+        margin: 0;
+    }
+
+    .nav-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        gap: 8px;
+    }
+
+    .navigation-menu.top .nav-list {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .navigation-menu.left .nav-list,
+    .navigation-menu.right .nav-list {
+        flex-direction: column;
+    }
+
+    .navigation-menu.footer .nav-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string MenuName { get; set; } = string.Empty;
+
+    [Parameter]
+    public int SiteId { get; set; } = 1;
+
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public int MaxDepth { get; set; } = 3;
+
+    private List<NavigationItem>? items;
+    private string MenuLocation { get; set; } = "Top";
+    private string? userRoles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNavigation();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadNavigation();
+    }
+
+    private async Task LoadNavigation()
+    {
+        try
+        {
+            // Get current user roles
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                var roles = user.Claims
+                    .Where(c => c.Type == System.Security.Claims.ClaimTypes.Role)
+                    .Select(c => c.Value);
+                userRoles = string.Join(",", roles);
+            }
+
+            // Get menu by name
+            var menu = await NavigationService.GetMenuByNameAsync(MenuName, SiteId);
+            
+            if (menu != null && menu.IsEnabled)
+            {
+                MenuLocation = menu.Location;
+                MaxDepth = menu.MaxDepth;
+                
+                // Get visible hierarchy based on user roles
+                var hierarchy = await NavigationService.GetVisibleHierarchyAsync(menu.Id, userRoles);
+                items = hierarchy.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            // TODO: Add ILogger dependency and use proper logging
+            Console.WriteLine($"Error loading navigation: {ex.Message}");
+            items = new List<NavigationItem>();
+        }
+    }
+}

@@ -1,0 +1,186 @@
+@using OrkinosaiCMS.Core.Entities.Navigation
+
+<div class="nav-item-node @(!Item.IsEnabled ? "disabled" : "")">
+    <div class="item-header">
+        <div class="item-info">
+            <span class="drag-handle">⋮⋮</span>
+            @if (!string.IsNullOrEmpty(Item.IconCssClass))
+            {
+                <i class="@Item.IconCssClass"></i>
+            }
+            <span class="item-label">@Item.Label</span>
+            <span class="item-url">@Item.Url</span>
+            @if (!Item.IsEnabled)
+            {
+                <span class="item-badge disabled">Disabled</span>
+            }
+            @if (!string.IsNullOrEmpty(Item.RequiredRoles))
+            {
+                <span class="item-badge roles">🔒 @Item.RequiredRoles</span>
+            }
+        </div>
+        <div class="item-actions">
+            <button class="btn-icon" @onclick="() => OnAddChild?.Invoke(Item.Id)" title="Add child item">
+                <span>➕</span>
+            </button>
+            <button class="btn-icon" @onclick="() => OnEdit?.Invoke(Item)" title="Edit">
+                <span>✏️</span>
+            </button>
+            <button class="btn-icon delete" @onclick="() => OnDelete?.Invoke(Item)" title="Delete">
+                <span>🗑️</span>
+            </button>
+        </div>
+    </div>
+    
+    @if (HasChildren())
+    {
+        <div class="item-children">
+            @foreach (var child in GetChildren())
+            {
+                <NavigationItemNode Item="@child" 
+                                   AllItems="@AllItems" 
+                                   OnEdit="OnEdit" 
+                                   OnDelete="OnDelete"
+                                   OnAddChild="OnAddChild" />
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .nav-item-node {
+        margin-bottom: 8px;
+    }
+
+    .nav-item-node.disabled {
+        opacity: 0.6;
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .item-header:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    .item-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .drag-handle {
+        cursor: move;
+        color: #94a3b8;
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .drag-handle:hover {
+        color: #64748b;
+    }
+
+    .item-label {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .item-url {
+        color: #64748b;
+        font-size: 13px;
+        font-family: monospace;
+    }
+
+    .item-badge {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .item-badge.disabled {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .item-badge.roles {
+        background: #dbeafe;
+        color: #2563eb;
+        text-transform: none;
+    }
+
+    .item-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        background: white;
+        border: 1px solid #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .btn-icon:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    .btn-icon.delete:hover {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .item-children {
+        margin-left: 40px;
+        margin-top: 8px;
+        padding-left: 16px;
+        border-left: 2px solid #e2e8f0;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public NavigationItem Item { get; set; } = null!;
+
+    [Parameter]
+    public List<NavigationItem> AllItems { get; set; } = new();
+
+    [Parameter]
+    public Action<NavigationItem>? OnEdit { get; set; }
+
+    [Parameter]
+    public Func<NavigationItem, Task>? OnDelete { get; set; }
+
+    [Parameter]
+    public Action<int?>? OnAddChild { get; set; }
+
+    private bool HasChildren()
+    {
+        return AllItems.Any(i => i.ParentId == Item.Id);
+    }
+
+    private IEnumerable<NavigationItem> GetChildren()
+    {
+        return AllItems.Where(i => i.ParentId == Item.Id).OrderBy(i => i.Order);
+    }
+}

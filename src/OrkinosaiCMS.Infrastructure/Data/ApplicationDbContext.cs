@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OrkinosaiCMS.Core.Entities.Identity;
+using OrkinosaiCMS.Core.Entities.Navigation;
 using OrkinosaiCMS.Core.Entities.Sites;
 using OrkinosaiCMS.Core.Entities.Subscriptions;
 
@@ -28,6 +29,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
     // Themes
     public DbSet<Theme> Themes => Set<Theme>();
+
+    // Navigation
+    public DbSet<NavigationMenu> NavigationMenus => Set<NavigationMenu>();
+    public DbSet<NavigationItem> NavigationItems => Set<NavigationItem>();
 
     // Users and Permissions (Legacy - will coexist with Identity)
     // Named differently to avoid conflicts with Identity tables
@@ -72,6 +77,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         modelBuilder.Entity<Subscription>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Invoice>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<PaymentMethod>().HasQueryFilter(e => !e.IsDeleted);
+        
+        // Navigation entities soft delete filters
+        modelBuilder.Entity<NavigationMenu>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<NavigationItem>().HasQueryFilter(e => !e.IsDeleted);
         
         // Identity entities soft delete filter
         modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => !e.IsDeleted);

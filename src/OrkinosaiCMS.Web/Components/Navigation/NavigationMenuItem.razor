@@ -1,0 +1,159 @@
+@using OrkinosaiCMS.Core.Entities.Navigation
+@inject NavigationManager NavManager
+
+<li class="nav-item @(IsActive() ? "active" : "") @(!Item.IsEnabled ? "disabled" : "")">
+    <a href="@Item.Url" 
+       class="nav-link @Item.CssClass"
+       target="@(Item.OpenInNewWindow ? "_blank" : "_self")"
+       title="@Item.Description">
+        @if (!string.IsNullOrEmpty(Item.IconCssClass))
+        {
+            <i class="@Item.IconCssClass nav-icon"></i>
+        }
+        <span class="nav-label">@Item.Label</span>
+        @if (HasChildren() && CurrentDepth < MaxDepth)
+        {
+            <span class="nav-arrow">▼</span>
+        }
+    </a>
+    
+    @if (HasChildren() && CurrentDepth < MaxDepth)
+    {
+        <ul class="nav-submenu">
+            @foreach (var child in Item.Children.Where(c => c.IsEnabled).OrderBy(c => c.Order))
+            {
+                <NavigationMenuItem Item="@child" MaxDepth="@MaxDepth" CurrentDepth="@(CurrentDepth + 1)" />
+            }
+        </ul>
+    }
+</li>
+
+<style>
+    .nav-item {
+        position: relative;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        color: #1e293b;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .nav-link:hover {
+        background: #f1f5f9;
+        color: #0078D4;
+    }
+
+    .nav-item.active > .nav-link {
+        background: #e0f2fe;
+        color: #0078D4;
+        font-weight: 600;
+    }
+
+    .nav-icon {
+        font-size: 16px;
+    }
+
+    .nav-label {
+        flex: 1;
+    }
+
+    .nav-arrow {
+        font-size: 10px;
+        transition: transform 0.2s;
+    }
+
+    .nav-item:hover > .nav-link .nav-arrow {
+        transform: rotate(-180deg);
+    }
+
+    .nav-submenu {
+        list-style: none;
+        padding: 8px 0 8px 24px;
+        margin: 0;
+        display: none;
+        background: #f8fafc;
+        border-radius: 6px;
+        margin-top: 4px;
+    }
+
+    .nav-item:hover > .nav-submenu {
+        display: block;
+    }
+
+    .nav-submenu .nav-link {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .nav-item.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* Horizontal navigation (top) */
+    .navigation-menu.top .nav-item {
+        display: inline-block;
+    }
+
+    .navigation-menu.top .nav-submenu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        min-width: 200px;
+        padding: 8px;
+        margin-top: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+    }
+
+    /* Vertical navigation (left/right) */
+    .navigation-menu.left .nav-item,
+    .navigation-menu.right .nav-item {
+        display: block;
+        width: 100%;
+    }
+
+    .navigation-menu.left .nav-submenu,
+    .navigation-menu.right .nav-submenu {
+        display: none;
+        padding-left: 16px;
+    }
+
+    .navigation-menu.left .nav-item:hover > .nav-submenu,
+    .navigation-menu.right .nav-item:hover > .nav-submenu {
+        display: block;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public NavigationItem Item { get; set; } = null!;
+
+    [Parameter]
+    public int MaxDepth { get; set; } = 3;
+
+    [Parameter]
+    public int CurrentDepth { get; set; } = 1;
+
+    private bool HasChildren()
+    {
+        return Item.Children != null && Item.Children.Any(c => c.IsEnabled);
+    }
+
+    private bool IsActive()
+    {
+        var currentUrl = NavManager.ToBaseRelativePath(NavManager.Uri);
+        var itemUrl = Item.Url.TrimStart('/');
+        
+        // Exact match or if item URL matches the start of current URL followed by /
+        return currentUrl.Equals(itemUrl, StringComparison.OrdinalIgnoreCase) ||
+               (currentUrl.StartsWith(itemUrl + "/", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(itemUrl));
+    }
+}
