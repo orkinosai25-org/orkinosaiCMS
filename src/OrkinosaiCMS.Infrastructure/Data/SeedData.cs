@@ -33,6 +33,7 @@ public static class SeedData
         await SeedModulesAsync(context);
         await SeedPagesAsync(context);
         await SeedPermissionsAndRolesAsync(context);
+        await SeedAdminUserAsync(context);
 
         await context.SaveChangesAsync();
     }
@@ -468,6 +469,47 @@ public static class SeedData
             });
         }
 
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedAdminUserAsync(ApplicationDbContext context)
+    {
+        // Check if admin user already exists
+        var adminUser = await context.CmsUsers.FirstOrDefaultAsync(u => u.Username == "admin");
+        if (adminUser != null)
+        {
+            return; // Admin user already exists
+        }
+
+        // Create admin user with BCrypt hashed password
+        // Password: Admin@123
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+        
+        var newAdminUser = new User
+        {
+            Username = "admin",
+            Email = "admin@orkinosaicms.local",
+            DisplayName = "Administrator",
+            PasswordHash = hashedPassword,
+            IsActive = true,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        context.CmsUsers.Add(newAdminUser);
+        await context.SaveChangesAsync();
+
+        // Assign Administrator role to the user
+        var adminRole = await context.CmsRoles.FirstAsync(r => r.Name == "Administrator");
+        var userRole = new UserRole
+        {
+            UserId = newAdminUser.Id,
+            RoleId = adminRole.Id,
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System"
+        };
+
+        context.CmsUserRoles.Add(userRole);
         await context.SaveChangesAsync();
     }
 }
