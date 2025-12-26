@@ -56,14 +56,21 @@ Add these settings to `appsettings.json`:
 
 ## Failsafe Mode Credentials
 
-When failsafe mode is enabled, you can log in with:
+**Important:** Failsafe mode now uses the same credentials as the default demo account for consistency:
 - **Username:** `admin`
-- **Password:** `password123`
+- **Password:** `Admin@123`
+
+This means you only need to remember one set of credentials. Whether the database is available or not, these credentials will work (when failsafe mode is enabled).
 
 ⚠️ **Security Warning:** These credentials are hardcoded in the application. They provide full administrator access and should ONLY be used for:
 1. Initial setup on a fresh installation
 2. Emergency access when the database is down
 3. Troubleshooting configuration issues
+
+**How It Works:**
+- When database is available: Credentials authenticate against the database (normal mode)
+- When database is unavailable: Credentials fall back to failsafe mode
+- Authentication is seamless - users don't need to know which mode is active
 
 ## Usage
 
@@ -78,7 +85,7 @@ When failsafe mode is enabled, you can log in with:
 ### Failsafe Mode (Database Unavailable)
 
 1. System detects database is unavailable
-2. Login accepts failsafe credentials (`admin` / `password123`)
+2. Login accepts failsafe credentials (`admin` / `Admin@123`)
 3. JWT token is generated with failsafe flag
 4. Red warning banner appears in admin area
 5. Full admin access is granted for troubleshooting
@@ -153,7 +160,7 @@ export Jwt__Secret="your-production-secret-key-minimum-32-chars"
 **Method 1 - Stop Database:**
 1. Stop your SQL Server instance
 2. Navigate to `/admin/login`
-3. Enter failsafe credentials: `admin` / `password123`
+3. Enter failsafe credentials: `admin` / `Admin@123`
 4. Should redirect to admin dashboard
 5. Red warning banner should appear
 
@@ -161,7 +168,7 @@ export Jwt__Secret="your-production-secret-key-minimum-32-chars"
 1. Temporarily change connection string to invalid value
 2. Restart application
 3. Navigate to `/admin/login`
-4. Enter failsafe credentials: `admin` / `password123`
+4. Enter failsafe credentials: `admin` / `Admin@123`
 5. Should redirect to admin dashboard
 6. Red warning banner should appear
 
