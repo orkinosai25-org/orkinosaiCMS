@@ -64,6 +64,13 @@ Navigate to `https://localhost:5001`
 - Four modules (Hero, Features, ContactForm, HtmlContent)
 - Three sample pages (Home, About, Contact)
 - Default roles and permissions
+- **Default admin user** with credentials: `admin` / `Admin@123`
+
+### 6. Access the Admin Panel
+
+Navigate to `https://localhost:5001/admin/login` and sign in with:
+- **Username:** `admin`
+- **Password:** `Admin@123`
 
 Visit `/cms-home` to see the demo website!
 
