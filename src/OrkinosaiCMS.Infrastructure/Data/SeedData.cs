@@ -10,6 +10,10 @@ namespace OrkinosaiCMS.Infrastructure.Data;
 /// </summary>
 public static class SeedData
 {
+    // Demo admin password for initial seeding
+    // WARNING: This is for demo/development purposes only. Change in production.
+    private const string DEMO_ADMIN_PASSWORD = "Admin@123";
+
     /// <summary>
     /// Initialize database with seed data
     /// </summary>
@@ -505,11 +509,11 @@ public static class SeedData
             }
             
             // Verify password is correct by attempting to verify it
-            // If verification fails, reset the password to Admin@123
-            if (!BCrypt.Net.BCrypt.Verify("Admin@123", adminUser.PasswordHash))
+            // If verification fails, reset the password to the demo admin password
+            if (!BCrypt.Net.BCrypt.Verify(DEMO_ADMIN_PASSWORD, adminUser.PasswordHash))
             {
                 // Password is incorrect or corrupt - reset it
-                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DEMO_ADMIN_PASSWORD);
                 adminUser.ModifiedOn = DateTime.UtcNow;
                 adminUser.ModifiedBy = "System";
                 needsUpdate = true;
@@ -540,8 +544,8 @@ public static class SeedData
         }
 
         // Admin user doesn't exist - create it
-        // Password: Admin@123
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+        // Password: DEMO_ADMIN_PASSWORD constant
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(DEMO_ADMIN_PASSWORD);
         
         var newAdminUser = new User
         {
