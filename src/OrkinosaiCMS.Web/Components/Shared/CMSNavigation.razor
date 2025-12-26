@@ -1,0 +1,50 @@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using OrkinosaiCMS.Web.Services
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthenticationService AuthService
+@inject NavigationManager NavigationManager
+
+<ul class="nav">
+    <li class="nav-item">
+        <a class="nav-link @(currentPage == "home" ? "active" : "")" href="/cms-home">Home</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(currentPage == "about" ? "active" : "")" href="/cms-about">About</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(currentPage == "features" ? "active" : "")" href="/cms-features">Features</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(currentPage == "contact" ? "active" : "")" href="/cms-contact">Contact</a>
+    </li>
+    
+    <AuthorizeView>
+        <Authorized>
+            <li class="nav-item ms-auto">
+                <span class="nav-link disabled">Welcome, @context.User.Identity?.Name</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" @onclick="HandleLogout" @onclick:preventDefault>Logout</a>
+            </li>
+        </Authorized>
+        <NotAuthorized>
+            <li class="nav-item ms-auto">
+                <a class="nav-link @(currentPage == "login" ? "active" : "")" href="/login">Login</a>
+            </li>
+        </NotAuthorized>
+    </AuthorizeView>
+</ul>
+
+@code {
+    [Parameter]
+    public string CurrentPage { get; set; } = string.Empty;
+    
+    private string currentPage => CurrentPage.ToLower();
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/cms-home", true);
+    }
+}

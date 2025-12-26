@@ -1,5 +1,6 @@
 @page "/cms-contact"
 @using OrkinosaiCMS.Web.Components.MasterPages
+@using OrkinosaiCMS.Web.Components.Shared
 
 <PageTitle>Contact - OrkinosaiCMS</PageTitle>
 
@@ -9,20 +10,7 @@
     </HeaderZone>
     
     <NavigationZone>
-        <ul class="nav">
-            <li class="nav-item">
-                <a class="nav-link" href="/cms-home">Home</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/cms-about">About</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/cms-features">Features</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="/cms-contact">Contact</a>
-            </li>
-        </ul>
+        <CMSNavigation CurrentPage="contact" />
     </NavigationZone>
     
     <MainZone>
