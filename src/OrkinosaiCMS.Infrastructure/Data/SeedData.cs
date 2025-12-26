@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OrkinosaiCMS.Core.Entities.Sites;
 using System.Text.Json;
 
@@ -21,28 +22,42 @@ public static class SeedData
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("SeedData");
 
-        // Ensure database is created
-        await context.Database.EnsureCreatedAsync();
-
-        // Check if data already exists
-        if (await context.Sites.AnyAsync())
+        try
         {
-            // Database has been seeded, but we still need to ensure admin user exists
-            // and is properly configured (this handles password resets and user fixes)
-            await EnsureAdminUserAsync(context);
-            return;
+            // Ensure database is created
+            await context.Database.EnsureCreatedAsync();
+            logger.LogInformation("Database ensured created");
+
+            // Check if data already exists
+            if (await context.Sites.AnyAsync())
+            {
+                logger.LogInformation("Database already seeded. Ensuring admin user is configured correctly...");
+                // Database has been seeded, but we still need to ensure admin user exists
+                // and is properly configured (this handles password resets and user fixes)
+                await EnsureAdminUserAsync(context, logger);
+                return;
+            }
+
+            logger.LogInformation("Starting database seeding...");
+            await SeedThemesAsync(context);
+            await SeedSiteAsync(context);
+            await SeedMasterPagesAsync(context);
+            await SeedModulesAsync(context);
+            await SeedPagesAsync(context);
+            await SeedPermissionsAndRolesAsync(context);
+            await SeedAdminUserAsync(context);
+
+            await context.SaveChangesAsync();
+            logger.LogInformation("Database seeding completed successfully");
         }
-
-        await SeedThemesAsync(context);
-        await SeedSiteAsync(context);
-        await SeedMasterPagesAsync(context);
-        await SeedModulesAsync(context);
-        await SeedPagesAsync(context);
-        await SeedPermissionsAndRolesAsync(context);
-        await SeedAdminUserAsync(context);
-
-        await context.SaveChangesAsync();
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error during database initialization");
+            throw;
+        }
     }
 
     private static async Task SeedThemesAsync(ApplicationDbContext context)
@@ -483,12 +498,13 @@ public static class SeedData
     /// Ensure admin user exists and is properly configured
     /// This method is called on every startup to fix any issues with the admin user
     /// </summary>
-    private static async Task EnsureAdminUserAsync(ApplicationDbContext context)
+    private static async Task EnsureAdminUserAsync(ApplicationDbContext context, ILogger logger)
     {
         // Ensure Administrator role exists
         var adminRole = await context.CmsRoles.FirstOrDefaultAsync(r => r.Name == "Administrator");
         if (adminRole == null)
         {
+            logger.LogWarning("Administrator role not found. Database needs full seeding.");
             // If no admin role, database needs full seeding - return
             return;
         }
@@ -498,6 +514,7 @@ public static class SeedData
         
         if (adminUser == null)
         {
+            logger.LogWarning("Admin user not found. Creating new admin user with username 'admin' and password 'Admin@123'");
             // Admin user doesn't exist - create it
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(DEMO_ADMIN_PASSWORD);
             
@@ -527,6 +544,7 @@ public static class SeedData
 
             context.CmsUserRoles.Add(newUserRole);
             await context.SaveChangesAsync();
+            logger.LogInformation("Admin user created successfully");
             return;
         }
 
@@ -536,6 +554,7 @@ public static class SeedData
         // Ensure user is active
         if (!adminUser.IsActive)
         {
+            logger.LogWarning("Admin user is inactive. Activating...");
             adminUser.IsActive = true;
             needsUpdate = true;
         }
@@ -543,6 +562,7 @@ public static class SeedData
         // Ensure user is not deleted
         if (adminUser.IsDeleted)
         {
+            logger.LogWarning("Admin user is marked as deleted. Restoring...");
             adminUser.IsDeleted = false;
             adminUser.DeletedOn = null;
             needsUpdate = true;
@@ -561,14 +581,16 @@ public static class SeedData
                 passwordNeedsReset = true;
             }
         }
-        catch
+        catch (Exception ex)
         {
             // If BCrypt.Verify throws (malformed hash), reset password
+            logger.LogWarning(ex, "Failed to verify admin password hash. Password will be reset.");
             passwordNeedsReset = true;
         }
         
         if (passwordNeedsReset)
         {
+            logger.LogWarning("Admin password verification failed or password hash is invalid. Resetting password to 'Admin@123'");
             // Password is incorrect, missing, or corrupt - reset it
             adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DEMO_ADMIN_PASSWORD);
             adminUser.ModifiedOn = DateTime.UtcNow;
@@ -580,6 +602,11 @@ public static class SeedData
         {
             context.CmsUsers.Update(adminUser);
             await context.SaveChangesAsync();
+            logger.LogInformation("Admin user updated successfully");
+        }
+        else
+        {
+            logger.LogInformation("Admin user verified - no updates needed");
         }
         
         // Ensure admin role is assigned
@@ -588,6 +615,7 @@ public static class SeedData
             
         if (!hasAdminRole)
         {
+            logger.LogWarning("Admin user does not have Administrator role. Assigning...");
             var userRole = new UserRole
             {
                 UserId = adminUser.Id,
@@ -597,6 +625,7 @@ public static class SeedData
             };
             context.CmsUserRoles.Add(userRole);
             await context.SaveChangesAsync();
+            logger.LogInformation("Administrator role assigned to admin user");
         }
     }
 
