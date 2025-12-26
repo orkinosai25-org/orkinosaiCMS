@@ -481,6 +481,13 @@ public static class SeedData
             return; // Admin user already exists
         }
 
+        // Ensure Administrator role exists
+        var adminRole = await context.CmsRoles.FirstOrDefaultAsync(r => r.Name == "Administrator");
+        if (adminRole == null)
+        {
+            throw new InvalidOperationException("Administrator role not found. Ensure SeedPermissionsAndRolesAsync() is called before SeedAdminUserAsync().");
+        }
+
         // Create admin user with BCrypt hashed password
         // Password: Admin@123
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
@@ -497,19 +504,17 @@ public static class SeedData
         };
 
         context.CmsUsers.Add(newAdminUser);
-        await context.SaveChangesAsync();
-
+        
         // Assign Administrator role to the user
-        var adminRole = await context.CmsRoles.FirstAsync(r => r.Name == "Administrator");
         var userRole = new UserRole
         {
-            UserId = newAdminUser.Id,
+            User = newAdminUser,
             RoleId = adminRole.Id,
             CreatedOn = DateTime.UtcNow,
             CreatedBy = "System"
         };
 
         context.CmsUserRoles.Add(userRole);
-        await context.SaveChangesAsync();
+        // SaveChanges will be called by the parent InitializeAsync method
     }
 }
