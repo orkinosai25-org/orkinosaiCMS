@@ -4,6 +4,9 @@
 @using OrkinosaiCMS.Web.Services
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
+@inject IWebHostEnvironment Environment
+@inject ILogger<Login> Logger
 
 <PageTitle>Admin Login - OrkinosaiCMS</PageTitle>
 
@@ -17,7 +20,22 @@
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert alert-danger" role="alert">
-                @errorMessage
+                <div class="error-title">@errorMessage</div>
+                @if (ShowDetailedErrors && !string.IsNullOrEmpty(detailedErrorMessage))
+                {
+                    <div class="error-details">
+                        <hr style="margin: 10px 0; border-color: rgba(255,255,255,0.2);" />
+                        <strong>🔧 Development Details:</strong>
+                        <pre class="error-stack">@detailedErrorMessage</pre>
+                        @if (!string.IsNullOrEmpty(stackTrace))
+                        {
+                            <details style="margin-top: 10px;">
+                                <summary style="cursor: pointer; font-weight: bold;">Stack Trace</summary>
+                                <pre class="error-stack">@stackTrace</pre>
+                            </details>
+                        }
+                    </div>
+                }
             </div>
         }
 
@@ -182,6 +200,30 @@
         border: 1px solid #f5c6cb;
     }
 
+    .error-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .error-details {
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+    .error-stack {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 5px 0;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
     .login-footer {
         text-align: center;
         padding-top: 20px;
@@ -200,7 +242,13 @@
     [SupplyParameterFromForm]
     private LoginModel loginModel { get; set; } = null!;
     private string errorMessage = string.Empty;
+    private string detailedErrorMessage = string.Empty;
+    private string stackTrace = string.Empty;
     private bool isLoading = false;
+
+    private bool ShowDetailedErrors => 
+        Configuration.GetValue<bool>("ErrorHandling:ShowDetailedErrors", false) || 
+        Environment.IsDevelopment();
 
     protected override void OnInitialized()
     {
@@ -222,22 +270,57 @@
         {
             isLoading = true;
             errorMessage = string.Empty;
+            detailedErrorMessage = string.Empty;
+            stackTrace = string.Empty;
+
+            Logger.LogInformation("Login attempt for user: {Username}", loginModel.Username);
 
             var success = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
             if (success)
             {
+                Logger.LogInformation("Login successful for user: {Username}", loginModel.Username);
                 // Don't force reload - let Blazor handle state change
                 NavigationManager.NavigateTo("/admin");
             }
             else
             {
+                Logger.LogWarning("Login failed for user: {Username}", loginModel.Username);
                 errorMessage = "Invalid username or password. Please try again.";
+                
+                if (ShowDetailedErrors)
+                {
+                    detailedErrorMessage = $"Login failed for username: '{loginModel.Username}'\n" +
+                                          $"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}\n" +
+                                          $"Possible causes:\n" +
+                                          $"  - Incorrect username or password\n" +
+                                          $"  - User account is inactive or deleted\n" +
+                                          $"  - Database connection issues\n" +
+                                          $"  - Password hash verification failed\n\n" +
+                                          $"Check README.md for demo credentials\n" +
+                                          $"Check FAILSAFE_AUTH_README.md for failsafe mode";
+                }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Exception occurred during login for user: {Username}", loginModel.Username);
             errorMessage = "An error occurred during login. Please try again.";
+            
+            if (ShowDetailedErrors)
+            {
+                detailedErrorMessage = $"Exception Type: {ex.GetType().FullName}\n" +
+                                      $"Message: {ex.Message}\n" +
+                                      $"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}\n";
+                
+                if (ex.InnerException != null)
+                {
+                    detailedErrorMessage += $"\nInner Exception: {ex.InnerException.GetType().Name}\n" +
+                                           $"Inner Message: {ex.InnerException.Message}";
+                }
+                
+                stackTrace = ex.StackTrace ?? "No stack trace available";
+            }
         }
         finally
         {
