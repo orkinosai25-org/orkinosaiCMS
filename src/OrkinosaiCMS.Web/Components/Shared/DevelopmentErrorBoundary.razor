@@ -1,0 +1,289 @@
+@using Microsoft.AspNetCore.Components.Web
+@inject IConfiguration Configuration
+@inject IWebHostEnvironment Environment
+
+<ErrorBoundary @ref="errorBoundary">
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+    <ErrorContent Context="exception">
+        @if (ShowDetailedErrors)
+        {
+            <div class="development-error-container">
+                <div class="development-error-header">
+                    <h2>⚠️ Component Error (Development Mode)</h2>
+                    <p>A Blazor component encountered an exception</p>
+                </div>
+                
+                <div class="development-error-banner">
+                    <strong>🔧 DEVELOPMENT MODE</strong>
+                    <p>This detailed error display is only shown during development. Production users will see a friendly error message.</p>
+                </div>
+
+                <div class="development-error-section">
+                    <div class="development-error-section-header">🔴 Exception Details</div>
+                    <div class="development-error-section-content">
+                        <div class="exception-type">@exception.GetType().FullName</div>
+                        <div class="exception-message">@exception.Message</div>
+                    </div>
+                </div>
+
+                @if (ShowStackTrace && !string.IsNullOrEmpty(exception.StackTrace))
+                {
+                    <div class="development-error-section">
+                        <div class="development-error-section-header">📋 Stack Trace</div>
+                        <div class="development-error-section-content">
+                            <pre class="stack-trace">@exception.StackTrace</pre>
+                        </div>
+                    </div>
+                }
+
+                @if (exception.InnerException != null)
+                {
+                    <div class="development-error-section">
+                        <div class="development-error-section-header">🔗 Inner Exception</div>
+                        <div class="development-error-section-content">
+                            @{
+                                var innerEx = exception.InnerException;
+                                var level = 1;
+                                while (innerEx != null)
+                                {
+                                    <div class="inner-exception">
+                                        <div class="inner-exception-title">Level @level: @innerEx.GetType().Name</div>
+                                        <div class="exception-message">@innerEx.Message</div>
+                                        @if (ShowStackTrace && !string.IsNullOrEmpty(innerEx.StackTrace))
+                                        {
+                                            <pre class="stack-trace">@innerEx.StackTrace</pre>
+                                        }
+                                    </div>
+                                    
+                                    innerEx = innerEx.InnerException;
+                                    level++;
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="development-error-actions">
+                    <button class="btn-recover" @onclick="Recover">Try to Recover</button>
+                    <button class="btn-reload" @onclick="ReloadPage">Reload Page</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="friendly-error-container">
+                <div class="friendly-error-icon">⚠️</div>
+                <h3>Something went wrong</h3>
+                <p>We're sorry, but something unexpected happened. Please try again.</p>
+                <button class="btn-reload" @onclick="ReloadPage">Reload Page</button>
+            </div>
+        }
+    </ErrorContent>
+</ErrorBoundary>
+
+<style>
+    .development-error-container {
+        background: #1a1a1a;
+        color: #e0e0e0;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        border: 2px solid #d32f2f;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .development-error-header {
+        background: linear-gradient(135deg, #c62828, #d32f2f);
+        color: white;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .development-error-header h2 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+    }
+
+    .development-error-header p {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.95;
+    }
+
+    .development-error-banner {
+        background: #ffa726;
+        color: #1a1a1a;
+        padding: 15px;
+        border-left: 5px solid #f57c00;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .development-error-banner strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+
+    .development-error-banner p {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .development-error-section {
+        background: #2d2d2d;
+        border: 1px solid #404040;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+
+    .development-error-section-header {
+        background: #333;
+        color: #fff;
+        padding: 12px 15px;
+        font-weight: bold;
+        border-bottom: 2px solid #0078D4;
+    }
+
+    .development-error-section-content {
+        padding: 15px;
+    }
+
+    .exception-type {
+        color: #ef5350;
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .exception-message {
+        background: #1a1a1a;
+        border-left: 4px solid #ef5350;
+        padding: 12px;
+        margin: 10px 0;
+        font-family: 'Courier New', monospace;
+        color: #ffcdd2;
+        border-radius: 4px;
+    }
+
+    .stack-trace {
+        background: #1a1a1a;
+        border: 1px solid #404040;
+        padding: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        overflow-x: auto;
+        border-radius: 4px;
+        color: #90caf9;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 10px 0;
+    }
+
+    .inner-exception {
+        margin-top: 12px;
+        padding: 12px;
+        background: #1a1a1a;
+        border-left: 4px solid #ff9800;
+        border-radius: 4px;
+    }
+
+    .inner-exception-title {
+        color: #ff9800;
+        font-weight: bold;
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .development-error-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-recover,
+    .btn-reload {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-recover {
+        background: #0078D4;
+        color: white;
+    }
+
+    .btn-recover:hover {
+        background: #005a9e;
+    }
+
+    .btn-reload {
+        background: #666;
+        color: white;
+    }
+
+    .btn-reload:hover {
+        background: #555;
+    }
+
+    .friendly-error-container {
+        text-align: center;
+        padding: 40px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin: 20px 0;
+    }
+
+    .friendly-error-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .friendly-error-container h3 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .friendly-error-container p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private ErrorBoundary? errorBoundary;
+
+    private bool ShowDetailedErrors => 
+        Configuration.GetValue<bool>("ErrorHandling:ShowDetailedErrors", false) || 
+        Environment.IsDevelopment();
+
+    private bool ShowStackTrace => 
+        Configuration.GetValue<bool>("ErrorHandling:IncludeStackTrace", false) || 
+        Environment.IsDevelopment();
+
+    private void Recover()
+    {
+        errorBoundary?.Recover();
+    }
+
+    private void ReloadPage()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+}

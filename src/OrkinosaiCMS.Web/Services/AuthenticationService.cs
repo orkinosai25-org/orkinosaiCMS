@@ -40,21 +40,32 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
+            _logger.LogInformation("Login attempt started for username: {Username}", username);
+            
             // Check if failsafe mode is enabled
             var failsafeModeEnabled = _configuration.GetValue<bool>("Authentication:FailsafeMode:Enabled", true);
             
             // First, try normal authentication if database is available
             bool isDatabaseAvailable = await IsDatabaseAvailableAsync();
             
+            _logger.LogInformation("Database availability check result: {IsAvailable}", isDatabaseAvailable);
+            
             if (isDatabaseAvailable)
             {
+                _logger.LogInformation("Attempting normal authentication for user: {Username}", username);
+                
                 // Normal authentication flow
                 var isValid = await _userService.VerifyPasswordAsync(username, password);
+                
+                _logger.LogInformation("Password verification result for {Username}: {IsValid}", username, isValid);
+                
                 if (isValid)
                 {
                     var user = await _userService.GetByUsernameAsync(username);
                     if (user != null && user.IsActive)
                     {
+                        _logger.LogInformation("User found and active: {Username}, UserId: {UserId}", username, user.Id);
+                        
                         // Get user's primary role
                         var userRoles = await _userService.GetUserRolesAsync(user.Id);
                         var primaryRole = "User";
@@ -62,6 +73,11 @@ public class AuthenticationService : IAuthenticationService
                         if (userRoles != null && userRoles.Any())
                         {
                             primaryRole = userRoles.First().Name;
+                            _logger.LogInformation("User {Username} assigned role: {Role}", username, primaryRole);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("User {Username} has no roles assigned", username);
                         }
 
                         // Generate JWT token (not failsafe mode)
@@ -94,14 +110,28 @@ public class AuthenticationService : IAuthenticationService
                         _logger.LogInformation("User {Username} logged in successfully", username);
                         return true;
                     }
+                    else if (user != null && !user.IsActive)
+                    {
+                        _logger.LogWarning("User {Username} exists but is not active", username);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("User {Username} not found after password verification succeeded", username);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Password verification failed for user: {Username}", username);
                 }
                 
                 // If normal auth failed and failsafe is enabled, try failsafe
                 if (failsafeModeEnabled && username == FAILSAFE_USERNAME && password == FAILSAFE_PASSWORD)
                 {
+                    _logger.LogWarning("Normal authentication failed, attempting failsafe login");
                     return await LoginWithFailsafeAsync();
                 }
                 
+                _logger.LogWarning("Login failed for user {Username}: Invalid credentials", username);
                 return false;
             }
             else
@@ -114,22 +144,24 @@ public class AuthenticationService : IAuthenticationService
                     return await LoginWithFailsafeAsync();
                 }
                 
-                _logger.LogError("Login failed: Database unavailable and failsafe credentials incorrect");
+                _logger.LogError("Login failed: Database unavailable and failsafe credentials incorrect or failsafe mode disabled");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login for user {Username}", username);
+            _logger.LogError(ex, "Exception occurred during login for user {Username}. Exception: {ExceptionType}, Message: {Message}", 
+                username, ex.GetType().Name, ex.Message);
             
             // Try failsafe as last resort if enabled
             var failsafeModeEnabled = _configuration.GetValue<bool>("Authentication:FailsafeMode:Enabled", true);
             if (failsafeModeEnabled && username == FAILSAFE_USERNAME && password == FAILSAFE_PASSWORD)
             {
+                _logger.LogWarning("Exception occurred, attempting failsafe login as last resort");
                 return await LoginWithFailsafeAsync();
             }
             
-            return false;
+            throw; // Re-throw to allow detailed error display in development mode
         }
     }
 

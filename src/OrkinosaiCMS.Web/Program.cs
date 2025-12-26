@@ -10,6 +10,7 @@ using OrkinosaiCMS.Infrastructure.Repositories;
 using OrkinosaiCMS.Infrastructure.Services;
 using OrkinosaiCMS.Web.Components;
 using OrkinosaiCMS.Web.Services;
+using OrkinosaiCMS.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,6 +128,12 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+else
+{
+    // Use development exception middleware in development mode for detailed error information
+    app.UseMiddleware<DevelopmentExceptionMiddleware>();
+}
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
