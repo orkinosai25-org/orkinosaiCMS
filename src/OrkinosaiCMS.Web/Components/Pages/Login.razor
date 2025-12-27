@@ -230,6 +230,9 @@
 
             if (success)
             {
+                // Give session storage a moment to persist
+                await Task.Delay(100);
+                
                 // Check if user is an administrator
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 var user = authState.User;
@@ -237,6 +240,7 @@
                 if (user.IsInRole("Administrator"))
                 {
                     // Redirect admin users to admin panel
+                    // Stay in the interactive circuit to preserve session storage
                     NavigationManager.NavigateTo("/admin");
                 }
                 else
