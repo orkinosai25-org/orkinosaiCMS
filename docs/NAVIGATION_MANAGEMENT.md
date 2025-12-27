@@ -187,11 +187,57 @@ Both NavigationMenu and NavigationItem entities support soft delete through the 
 ## Seeded Data
 
 The system includes a default "TopNavigation" menu with sample items:
-- Home (/)
+- Home (/cms-home)
 - About (/cms-about)
 - Features (/cms-features)
 - Contact (/cms-contact)
 - Admin (/admin) - visible to Administrators only
+
+## Frontend Integration
+
+### Dynamic Navigation (December 2025 Update)
+
+The CMS now features **fully dynamic navigation** that pulls menu items directly from the database. Changes made in the admin panel reflect immediately on the frontend without requiring code changes or redeployment.
+
+#### CMSNavigation Component
+
+The main site navigation now uses the `CMSNavigation` component which automatically renders the TopNavigation menu with user authentication controls:
+
+```razor
+<CMSNavigation CurrentPage="home" />
+```
+
+This component:
+- Automatically loads the "TopNavigation" menu from the database
+- Displays navigation items based on user roles
+- Shows login/logout controls
+- Displays the current user's name when authenticated
+- Is mobile-responsive by default
+
+#### Legacy Pages Deprecated
+
+The following legacy Blazor sample pages are no longer included in the navigation:
+- `/counter` - Counter demo page (still accessible directly)
+- `/weather` - Weather demo page (still accessible directly)
+
+These pages remain in the codebase for reference but are not linked in the CMS navigation. To add them back, simply create navigation items pointing to these URLs in the Navigation Management admin panel.
+
+#### How Dynamic Navigation Works
+
+1. **Menu Definition**: Administrators define menus in `/admin/navigation`
+2. **Database Storage**: Menu and item data is stored in NavigationMenus and NavigationItems tables
+3. **Automatic Loading**: NavigationRenderer component queries the database on page load
+4. **Role Filtering**: Items are filtered based on user roles and permissions
+5. **Hierarchy Building**: The service builds the complete navigation tree
+6. **Rendering**: The component renders the navigation with appropriate styling
+
+#### No Code Changes Required
+
+To modify navigation:
+1. ✅ **Just use the admin panel** - No need to edit Razor files
+2. ✅ **Immediate updates** - Changes appear instantly on the frontend
+3. ✅ **No redeployment** - All navigation is database-driven
+4. ✅ **Designer-friendly** - Non-developers can manage navigation
 
 ## Best Practices
 
