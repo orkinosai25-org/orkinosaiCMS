@@ -1,46 +1,90 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @using OrkinosaiCMS.Web.Services
+@using OrkinosaiCMS.Web.Components.Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 
-<ul class="nav">
-    <li class="nav-item">
-        <a class="nav-link @(currentPage == "home" ? "active" : "")" href="/cms-home">Home</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @(currentPage == "about" ? "active" : "")" href="/cms-about">About</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @(currentPage == "features" ? "active" : "")" href="/cms-features">Features</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @(currentPage == "contact" ? "active" : "")" href="/cms-contact">Contact</a>
-    </li>
+<div class="cms-navigation-wrapper">
+    <NavigationRenderer MenuName="TopNavigation" SiteId="1" CssClass="cms-top-nav" />
     
-    <AuthorizeView>
-        <Authorized>
-            <li class="nav-item ms-auto">
-                <span class="nav-link disabled">Welcome, @context.User.Identity?.Name</span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#" @onclick="HandleLogout" @onclick:preventDefault>Logout</a>
-            </li>
-        </Authorized>
-        <NotAuthorized>
-            <li class="nav-item ms-auto">
-                <a class="nav-link @(currentPage == "login" ? "active" : "")" href="/login">Login</a>
-            </li>
-        </NotAuthorized>
-    </AuthorizeView>
-</ul>
+    <div class="nav-actions">
+        <AuthorizeView>
+            <Authorized>
+                <span class="nav-welcome">Welcome, @context.User.Identity?.Name</span>
+                <a class="nav-link nav-logout" href="#" @onclick="HandleLogout" @onclick:preventDefault>Logout</a>
+            </Authorized>
+            <NotAuthorized>
+                <a class="nav-link nav-login" href="/login">Login</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+<style>
+    .cms-navigation-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .cms-top-nav {
+        flex: 1;
+    }
+
+    .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .nav-welcome {
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .nav-link {
+        padding: 8px 16px;
+        color: #1e293b;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .nav-link:hover {
+        background: #f1f5f9;
+        color: #0078D4;
+    }
+
+    .nav-login {
+        background: #0078D4;
+        color: white;
+    }
+
+    .nav-login:hover {
+        background: #005a9e;
+        color: white;
+    }
+
+    .nav-logout {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .nav-logout:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+</style>
 
 @code {
     [Parameter]
     public string CurrentPage { get; set; } = string.Empty;
-    
-    private string currentPage => CurrentPage.ToLower();
 
     private async Task HandleLogout()
     {
