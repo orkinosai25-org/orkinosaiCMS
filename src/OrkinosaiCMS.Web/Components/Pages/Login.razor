@@ -1,9 +1,12 @@
 @page "/login"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @using OrkinosaiCMS.Web.Services
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Login - OrkinosaiCMS</PageTitle>
 
@@ -227,8 +230,20 @@
 
             if (success)
             {
-                // Redirect to home page after successful login
-                NavigationManager.NavigateTo("/cms-home");
+                // Check if user is an administrator
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                
+                if (user.IsInRole("Administrator"))
+                {
+                    // Redirect admin users to admin panel
+                    NavigationManager.NavigateTo("/admin");
+                }
+                else
+                {
+                    // Redirect regular users to home page
+                    NavigationManager.NavigateTo("/cms-home");
+                }
             }
             else
             {
