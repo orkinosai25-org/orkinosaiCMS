@@ -5,81 +5,89 @@
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 
-<CascadingAuthenticationState>
-    <AuthorizeView Roles="Administrator">
-        <Authorized>
-            @* Display failsafe warning banner if active *@
-            <FailsafeWarningBanner />
-            
-            <div class="admin-layout">
-                <div class="admin-sidebar">
-                    <div class="admin-logo">
-                        <h2>OrkinosaiCMS</h2>
-                        <p>Admin Panel</p>
-                    </div>
-                    <nav class="admin-nav">
-                        <NavLink href="/admin" Match="NavLinkMatch.All" class="nav-item">
-                            <span class="nav-icon">🏠</span>
-                            Dashboard
-                        </NavLink>
-                        <NavLink href="/admin/pages" class="nav-item">
-                            <span class="nav-icon">📄</span>
-                            Pages
-                        </NavLink>
-                        <NavLink href="/admin/navigation" class="nav-item">
-                            <span class="nav-icon">🧭</span>
-                            Navigation
-                        </NavLink>
-                        <NavLink href="/admin/content" class="nav-item">
-                            <span class="nav-icon">📝</span>
-                            Content
-                        </NavLink>
-                        <NavLink href="/admin/media" class="nav-item">
-                            <span class="nav-icon">🖼️</span>
-                            Media
-                        </NavLink>
-                        <NavLink href="/admin/themes" class="nav-item">
-                            <span class="nav-icon">🎨</span>
-                            Themes
-                        </NavLink>
-                        <NavLink href="/admin/users" class="nav-item">
-                            <span class="nav-icon">👥</span>
-                            Users
-                        </NavLink>
-                        <NavLink href="/admin/settings" class="nav-item">
-                            <span class="nav-icon">⚙️</span>
-                            Settings
-                        </NavLink>
-                    </nav>
-                    <div class="admin-user">
-                        <div class="user-info">
-                            <span class="user-icon">👤</span>
-                            <div>
-                                <p class="user-name">@context.User.Identity?.Name</p>
-                                <p class="user-role">Administrator</p>
-                            </div>
-                        </div>
-                        <button class="btn-logout" @onclick="HandleLogout">
-                            Logout
-                        </button>
-                    </div>
+@if (isAuthenticated.HasValue)
+{
+    @if (isAuthenticated.Value)
+    {
+        @* Display failsafe warning banner if active *@
+        <FailsafeWarningBanner />
+        
+        <div class="admin-layout">
+            <div class="admin-sidebar">
+                <div class="admin-logo">
+                    <h2>OrkinosaiCMS</h2>
+                    <p>Admin Panel</p>
                 </div>
-
-                <main class="admin-content">
-                    @Body
-                </main>
-
-                @* Zoota Chat Agent - Admin Only *@
-                <ChatAgent />
+                <nav class="admin-nav">
+                    <NavLink href="/admin" Match="NavLinkMatch.All" class="nav-item">
+                        <span class="nav-icon">🏠</span>
+                        Dashboard
+                    </NavLink>
+                    <NavLink href="/admin/pages" class="nav-item">
+                        <span class="nav-icon">📄</span>
+                        Pages
+                    </NavLink>
+                    <NavLink href="/admin/navigation" class="nav-item">
+                        <span class="nav-icon">🧭</span>
+                        Navigation
+                    </NavLink>
+                    <NavLink href="/admin/content" class="nav-item">
+                        <span class="nav-icon">📝</span>
+                        Content
+                    </NavLink>
+                    <NavLink href="/admin/media" class="nav-item">
+                        <span class="nav-icon">🖼️</span>
+                        Media
+                    </NavLink>
+                    <NavLink href="/admin/themes" class="nav-item">
+                        <span class="nav-icon">🎨</span>
+                        Themes
+                    </NavLink>
+                    <NavLink href="/admin/users" class="nav-item">
+                        <span class="nav-icon">👥</span>
+                        Users
+                    </NavLink>
+                    <NavLink href="/admin/settings" class="nav-item">
+                        <span class="nav-icon">⚙️</span>
+                        Settings
+                    </NavLink>
+                </nav>
+                <div class="admin-user">
+                    <div class="user-info">
+                        <span class="user-icon">👤</span>
+                        <div>
+                            <p class="user-name">@username</p>
+                            <p class="user-role">Administrator</p>
+                        </div>
+                    </div>
+                    <button class="btn-logout" @onclick="HandleLogout">
+                        Logout
+                    </button>
+                </div>
             </div>
-        </Authorized>
-        <NotAuthorized>
-            @{
-                NavigationManager.NavigateTo("/admin/login", true);
-            }
-        </NotAuthorized>
-    </AuthorizeView>
-</CascadingAuthenticationState>
+
+            <main class="admin-content">
+                @Body
+            </main>
+
+            @* Zoota Chat Agent - Admin Only *@
+            <ChatAgent />
+        </div>
+    }
+    else
+    {
+        NavigationManager.NavigateTo("/admin/login", true);
+        <div style="padding: 20px; text-align: center;">
+            <p>Redirecting to login...</p>
+        </div>
+    }
+}
+else
+{
+    <div style="padding: 20px; text-align: center;">
+        <p>Loading...</p>
+    </div>
+}
 
 <style>
     .admin-layout {
@@ -225,6 +233,31 @@
 </style>
 
 @code {
+    private bool? isAuthenticated = null;
+    private string username = "Admin";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var user = await AuthService.GetCurrentUserAsync();
+                isAuthenticated = user != null && user.Role == "Administrator";
+                if (user != null)
+                {
+                    username = user.Username;
+                }
+                StateHasChanged();
+            }
+            catch
+            {
+                isAuthenticated = false;
+                StateHasChanged();
+            }
+        }
+    }
+
     private async Task HandleLogout()
     {
         await AuthService.LogoutAsync();
