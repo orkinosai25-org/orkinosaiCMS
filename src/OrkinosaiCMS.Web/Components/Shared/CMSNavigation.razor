@@ -1,13 +1,21 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @using OrkinosaiCMS.Web.Services
-@using OrkinosaiCMS.Web.Components.Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 
 <div class="cms-navigation-wrapper">
-    <NavigationRenderer MenuName="@MenuName" SiteId="@SiteId" CssClass="cms-top-nav" />
+    @if (hasError)
+    {
+        <div class="nav-error">
+            <span>Navigation unavailable</span>
+        </div>
+    }
+    else
+    {
+        <NavigationRenderer MenuName="@MenuName" SiteId="@SiteId" CssClass="cms-top-nav" />
+    }
     
     <div class="nav-actions">
         <AuthorizeView>
@@ -38,6 +46,14 @@
         display: flex;
         align-items: center;
         gap: 16px;
+    }
+
+    .nav-error {
+        padding: 8px 16px;
+        background: #fee2e2;
+        color: #991b1b;
+        border-radius: 6px;
+        font-size: 14px;
     }
 
     .nav-welcome {
@@ -95,6 +111,22 @@
     /// </summary>
     [Parameter]
     public int SiteId { get; set; } = 1;
+
+    private bool hasError = false;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            // Basic initialization - NavigationRenderer will handle the actual loading
+            // Error handling is done at the NavigationRenderer level
+            base.OnInitialized();
+        }
+        catch (Exception)
+        {
+            hasError = true;
+        }
+    }
 
     private async Task HandleLogout()
     {

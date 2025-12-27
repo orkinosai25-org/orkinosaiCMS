@@ -10,7 +10,20 @@ This guide will help designers and site builders get started with OrkinosaiCMS n
 2. Use the default credentials:
    - **Username**: `admin`
    - **Password**: `Admin@123`
-   - ⚠️ **Important**: Change these credentials after first login in production!
+
+⚠️ **CRITICAL SECURITY WARNING**: These are default development credentials!
+
+**For Production Environments:**
+- **IMMEDIATELY** change the admin password after first login
+- Use strong, unique passwords (minimum 12 characters with uppercase, lowercase, numbers, and symbols)
+- Enable two-factor authentication if available
+- Never share admin credentials
+- Never commit credentials to source control
+
+**For Development/Testing:**
+- These credentials are acceptable for local development
+- Do not use in any environment accessible from the internet
+- Regenerate credentials for staging environments
 
 ## Admin Panel Overview
 
