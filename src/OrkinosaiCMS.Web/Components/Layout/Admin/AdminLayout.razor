@@ -5,6 +5,7 @@
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<AdminLayout> Logger
 
 @if (isAuthenticated.HasValue)
 {
@@ -251,23 +252,20 @@ else
 
             if (user.Identity?.IsAuthenticated ?? false)
             {
+                // Get username from claims first
+                username = user.Identity.Name ?? "Admin";
+                
                 // Check if user is an Administrator
                 isAuthenticated = user.IsInRole("Administrator");
-                
-                if (isAuthenticated.Value)
-                {
-                    // Get username from claims
-                    username = user.Identity.Name ?? "Admin";
-                }
             }
             else
             {
                 isAuthenticated = false;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Log error if needed, but set to false to show login
+            Logger.LogError(ex, "Error checking authentication state in AdminLayout");
             isAuthenticated = false;
         }
     }
