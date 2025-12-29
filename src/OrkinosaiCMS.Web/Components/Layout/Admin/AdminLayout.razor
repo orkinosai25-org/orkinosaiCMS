@@ -4,6 +4,7 @@
 @using OrkinosaiCMS.Web.Components.Shared
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 @if (isAuthenticated.HasValue)
 {
@@ -236,25 +237,38 @@ else
     private bool? isAuthenticated = null;
     private string username = "Admin";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
+        await CheckAuthenticationAsync();
+    }
+
+    private async Task CheckAuthenticationAsync()
+    {
+        try
         {
-            try
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated ?? false)
             {
-                var user = await AuthService.GetCurrentUserAsync();
-                isAuthenticated = user != null && user.Role == "Administrator";
-                if (user != null)
+                // Check if user is an Administrator
+                isAuthenticated = user.IsInRole("Administrator");
+                
+                if (isAuthenticated.Value)
                 {
-                    username = user.Username;
+                    // Get username from claims
+                    username = user.Identity.Name ?? "Admin";
                 }
-                StateHasChanged();
             }
-            catch
+            else
             {
                 isAuthenticated = false;
-                StateHasChanged();
             }
+        }
+        catch
+        {
+            // Log error if needed, but set to false to show login
+            isAuthenticated = false;
         }
     }
 
