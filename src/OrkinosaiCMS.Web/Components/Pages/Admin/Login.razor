@@ -270,12 +270,6 @@
 
     private async Task HandleLogin()
     {
-        if (loginModel == null)
-        {
-            loginModel = new LoginModel();
-            return;
-        }
-
         try
         {
             isLoading = true;
@@ -284,7 +278,7 @@
             stackTrace = string.Empty;
             StateHasChanged(); // Update UI to show loading state
 
-            Logger.LogInformation("Login attempt for user: {Username}", loginModel.Username);
+            Logger.LogInformation("Login attempt for user: {Username}", loginModel!.Username);
 
             var success = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
@@ -336,7 +330,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception occurred during login for user: {Username}", loginModel.Username);
+            Logger.LogError(ex, "Exception occurred during login for user: {Username}", loginModel!.Username);
             errorMessage = "An error occurred during login. Please try again.";
             
             if (ShowDetailedErrors)

@@ -223,19 +223,13 @@
 
     private async Task HandleLogin()
     {
-        if (loginModel == null)
-        {
-            loginModel = new LoginModel();
-            return;
-        }
-
         try
         {
             isLoading = true;
             errorMessage = string.Empty;
             StateHasChanged(); // Update UI to show loading state
 
-            var success = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
+            var success = await AuthService.LoginAsync(loginModel!.Username, loginModel.Password);
 
             if (success)
             {
