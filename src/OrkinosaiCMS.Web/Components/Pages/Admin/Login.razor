@@ -41,7 +41,7 @@
             </div>
         }
 
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="AdminLoginForm" class="login-form">
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" class="login-form">
             <DataAnnotationsValidator />
             
             <div class="form-group">
@@ -243,7 +243,6 @@
 @code {
     private const int SESSION_PERSIST_DELAY_MS = 100;
     
-    [SupplyParameterFromForm]
     private LoginModel? loginModel { get; set; }
     private string errorMessage = string.Empty;
     private string detailedErrorMessage = string.Empty;
