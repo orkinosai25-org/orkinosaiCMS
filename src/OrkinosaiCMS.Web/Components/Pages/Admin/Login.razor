@@ -2,11 +2,13 @@
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
 @using OrkinosaiCMS.Web.Services
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
 @inject IWebHostEnvironment Environment
 @inject ILogger<Login> Logger
+@inject ProtectedSessionStorage SessionStorage
 
 <PageTitle>Admin Login - OrkinosaiCMS</PageTitle>
 
@@ -244,10 +246,48 @@
     private string detailedErrorMessage = string.Empty;
     private string stackTrace = string.Empty;
     private bool isLoading = false;
+    private bool hasRendered = false;
+    private bool pendingNavigation = false;
+    private UserSession? pendingSession = null;
 
     private bool ShowDetailedErrors => 
         Configuration.GetValue<bool>("ErrorHandling:ShowDetailedErrors", false) || 
         Environment.IsDevelopment();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        if (firstRender)
+        {
+            hasRendered = true;
+        }
+        
+        // If we have a pending session, store it in session storage now that JS interop is available
+        if (pendingSession != null)
+        {
+            var session = pendingSession;
+            pendingSession = null; // Clear it first to avoid multiple attempts
+            
+            try
+            {
+                await SessionStorage.SetAsync("UserSession", session);
+                Logger.LogInformation("Session storage set successfully for user: {Username}", session.Username);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to set session storage");
+            }
+        }
+        
+        // If we have a pending navigation, execute it now that session storage is set
+        if (pendingNavigation)
+        {
+            pendingNavigation = false;
+            // Navigate without force reload to keep the circuit alive
+            NavigationManager.NavigateTo("/admin");
+        }
+    }
 
     private class LoginModel
     {
@@ -274,10 +314,19 @@
             if (success)
             {
                 Logger.LogInformation("Login successful for user: {Username}", loginModel.Username);
-                // Stay in the interactive circuit where session storage is available
-                // Don't use forceLoad to avoid losing the authentication state
-                await Task.Delay(100);
-                NavigationManager.NavigateTo("/admin");
+                
+                // Get the current user session from the auth service
+                var userSession = await AuthService.GetCurrentUserAsync();
+                if (userSession != null)
+                {
+                    // Store the session for persisting in OnAfterRenderAsync
+                    pendingSession = userSession;
+                }
+                
+                // Mark navigation as pending and trigger re-render
+                // Navigation will happen in OnAfterRenderAsync when JS interop is available
+                pendingNavigation = true;
+                StateHasChanged(); // Trigger re-render to call OnAfterRenderAsync
             }
             else
             {

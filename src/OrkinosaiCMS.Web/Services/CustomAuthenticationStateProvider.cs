@@ -15,6 +15,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ILogger<CustomAuthenticationStateProvider> _logger;
     private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+    private ClaimsPrincipal? _cachedPrincipal;
 
     public CustomAuthenticationStateProvider(
         ProtectedSessionStorage sessionStorage,
@@ -32,6 +33,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
+            // If we have a cached principal from a recent UpdateAuthenticationState call,
+            // use it (this handles pre-rendering scenarios where JS interop isn't available)
+            if (_cachedPrincipal != null)
+            {
+                return await Task.FromResult(new AuthenticationState(_cachedPrincipal));
+            }
+
             var userSessionResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
             if (!userSessionResult.Success || userSessionResult.Value == null)
             {
@@ -66,6 +74,8 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                         }
                     }
                     
+                    // Cache the principal for use during pre-rendering
+                    _cachedPrincipal = principal;
                     return await Task.FromResult(new AuthenticationState(principal));
                 }
             }
@@ -75,7 +85,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting authentication state");
+            // This typically happens during pre-rendering when JS interop is not available
+            // Return cached principal if available, otherwise return anonymous
+            _logger.LogWarning(ex, "Error getting authentication state (likely during pre-rendering)");
+            if (_cachedPrincipal != null)
+            {
+                return await Task.FromResult(new AuthenticationState(_cachedPrincipal));
+            }
             return await Task.FromResult(new AuthenticationState(_anonymous));
         }
     }
@@ -86,7 +102,16 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
         if (userSession != null)
         {
-            await _sessionStorage.SetAsync("UserSession", userSession);
+            // Always try to store in session storage (will work after pre-rendering)
+            try
+            {
+                await _sessionStorage.SetAsync("UserSession", userSession);
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available during pre-rendering - this is expected
+                _logger.LogInformation("Session storage not available during pre-rendering, will retry after render");
+            }
             
             // Validate JWT and create principal
             if (!string.IsNullOrEmpty(userSession.JwtToken))
@@ -98,11 +123,24 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             {
                 claimsPrincipal = _anonymous;
             }
+            
+            // Cache the principal so it's available during pre-rendering
+            _cachedPrincipal = claimsPrincipal;
         }
         else
         {
-            await _sessionStorage.DeleteAsync("UserSession");
+            // Clear session
+            try
+            {
+                await _sessionStorage.DeleteAsync("UserSession");
+            }
+            catch (InvalidOperationException)
+            {
+                // JS interop not available during pre-rendering - this is expected
+                _logger.LogInformation("Session storage not available during pre-rendering");
+            }
             claimsPrincipal = _anonymous;
+            _cachedPrincipal = null;
         }
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
