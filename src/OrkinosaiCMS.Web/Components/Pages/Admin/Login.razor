@@ -39,7 +39,7 @@
             </div>
         }
 
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="LoginForm" class="login-form">
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" class="login-form">
             <DataAnnotationsValidator />
             
             <div class="form-group">
@@ -239,8 +239,7 @@
 </style>
 
 @code {
-    [SupplyParameterFromForm]
-    private LoginModel loginModel { get; set; } = null!;
+    private LoginModel loginModel { get; set; } = new LoginModel();
     private string errorMessage = string.Empty;
     private string detailedErrorMessage = string.Empty;
     private string stackTrace = string.Empty;
@@ -249,11 +248,6 @@
     private bool ShowDetailedErrors => 
         Configuration.GetValue<bool>("ErrorHandling:ShowDetailedErrors", false) || 
         Environment.IsDevelopment();
-
-    protected override void OnInitialized()
-    {
-        loginModel ??= new LoginModel();
-    }
 
     private class LoginModel
     {
