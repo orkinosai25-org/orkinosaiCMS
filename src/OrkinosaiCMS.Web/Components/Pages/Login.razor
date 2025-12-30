@@ -200,6 +200,8 @@
 </style>
 
 @code {
+    private const int SESSION_PERSIST_DELAY_MS = 100;
+    
     private LoginModel loginModel { get; set; } = new LoginModel();
     private string errorMessage = string.Empty;
     private bool isLoading = false;
@@ -219,13 +221,14 @@
         {
             isLoading = true;
             errorMessage = string.Empty;
+            StateHasChanged(); // Update UI to show loading state
 
             var success = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
             if (success)
             {
                 // Give session storage a moment to persist
-                await Task.Delay(100);
+                await Task.Delay(SESSION_PERSIST_DELAY_MS);
                 
                 // Check if user is an administrator
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -234,27 +237,29 @@
                 if (user.IsInRole("Administrator"))
                 {
                     // Redirect admin users to admin panel
-                    // Stay in the interactive circuit to preserve session storage
-                    NavigationManager.NavigateTo("/admin");
+                    NavigationManager.NavigateTo("/admin", forceLoad: false);
                 }
                 else
                 {
                     // Redirect regular users to home page
-                    NavigationManager.NavigateTo("/cms-home");
+                    NavigationManager.NavigateTo("/cms-home", forceLoad: false);
                 }
             }
             else
             {
                 errorMessage = "Invalid username or password. Please try again.";
+                StateHasChanged(); // Update UI to show error
             }
         }
         catch (Exception)
         {
             errorMessage = "An error occurred during login. Please try again.";
+            StateHasChanged(); // Update UI to show error
         }
         finally
         {
             isLoading = false;
+            StateHasChanged(); // Update UI to clear loading state
         }
     }
 }
