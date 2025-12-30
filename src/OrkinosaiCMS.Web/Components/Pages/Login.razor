@@ -24,7 +24,7 @@
             </div>
         }
 
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="LoginForm" class="login-form">
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" class="login-form">
             <DataAnnotationsValidator />
             
             <div class="form-group">
@@ -200,15 +200,9 @@
 </style>
 
 @code {
-    [SupplyParameterFromForm]
-    private LoginModel loginModel { get; set; } = null!;
+    private LoginModel loginModel { get; set; } = new LoginModel();
     private string errorMessage = string.Empty;
     private bool isLoading = false;
-
-    protected override void OnInitialized()
-    {
-        loginModel ??= new LoginModel();
-    }
 
     private class LoginModel
     {
