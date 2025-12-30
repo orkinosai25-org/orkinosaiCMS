@@ -241,6 +241,8 @@
 </style>
 
 @code {
+    private const int SESSION_PERSIST_DELAY_MS = 100;
+    
     private LoginModel loginModel { get; set; } = new LoginModel();
     private string errorMessage = string.Empty;
     private string detailedErrorMessage = string.Empty;
@@ -294,8 +296,8 @@
                     }
                 }
                 
-                // Small delay to ensure state is persisted
-                await Task.Delay(100);
+                // Small delay to ensure authentication state is persisted
+                await Task.Delay(SESSION_PERSIST_DELAY_MS);
                 
                 // Navigate to admin dashboard
                 NavigationManager.NavigateTo("/admin", forceLoad: false);

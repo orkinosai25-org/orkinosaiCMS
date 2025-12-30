@@ -200,6 +200,8 @@
 </style>
 
 @code {
+    private const int SESSION_PERSIST_DELAY_MS = 100;
+    
     private LoginModel loginModel { get; set; } = new LoginModel();
     private string errorMessage = string.Empty;
     private bool isLoading = false;
@@ -226,7 +228,7 @@
             if (success)
             {
                 // Give session storage a moment to persist
-                await Task.Delay(100);
+                await Task.Delay(SESSION_PERSIST_DELAY_MS);
                 
                 // Check if user is an administrator
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
