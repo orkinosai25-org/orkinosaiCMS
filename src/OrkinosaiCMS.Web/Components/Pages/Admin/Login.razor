@@ -246,48 +246,10 @@
     private string detailedErrorMessage = string.Empty;
     private string stackTrace = string.Empty;
     private bool isLoading = false;
-    private bool hasRendered = false;
-    private bool pendingNavigation = false;
-    private UserSession? pendingSession = null;
 
     private bool ShowDetailedErrors => 
         Configuration.GetValue<bool>("ErrorHandling:ShowDetailedErrors", false) || 
         Environment.IsDevelopment();
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        
-        if (firstRender)
-        {
-            hasRendered = true;
-        }
-        
-        // If we have a pending session, store it in session storage now that JS interop is available
-        if (pendingSession != null)
-        {
-            var session = pendingSession;
-            pendingSession = null; // Clear it first to avoid multiple attempts
-            
-            try
-            {
-                await SessionStorage.SetAsync("UserSession", session);
-                Logger.LogInformation("Session storage set successfully for user: {Username}", session.Username);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Failed to set session storage");
-            }
-        }
-        
-        // If we have a pending navigation, execute it now that session storage is set
-        if (pendingNavigation)
-        {
-            pendingNavigation = false;
-            // Navigate without force reload to keep the circuit alive
-            NavigationManager.NavigateTo("/admin");
-        }
-    }
 
     private class LoginModel
     {
@@ -306,6 +268,7 @@
             errorMessage = string.Empty;
             detailedErrorMessage = string.Empty;
             stackTrace = string.Empty;
+            StateHasChanged(); // Update UI to show loading state
 
             Logger.LogInformation("Login attempt for user: {Username}", loginModel.Username);
 
@@ -319,14 +282,23 @@
                 var userSession = await AuthService.GetCurrentUserAsync();
                 if (userSession != null)
                 {
-                    // Store the session for persisting in OnAfterRenderAsync
-                    pendingSession = userSession;
+                    try
+                    {
+                        // Store session in protected session storage
+                        await SessionStorage.SetAsync("UserSession", userSession);
+                        Logger.LogInformation("Session stored successfully for user: {Username}", userSession.Username);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to store session in session storage, continuing anyway");
+                    }
                 }
                 
-                // Mark navigation as pending and trigger re-render
-                // Navigation will happen in OnAfterRenderAsync when JS interop is available
-                pendingNavigation = true;
-                StateHasChanged(); // Trigger re-render to call OnAfterRenderAsync
+                // Small delay to ensure state is persisted
+                await Task.Delay(100);
+                
+                // Navigate to admin dashboard
+                NavigationManager.NavigateTo("/admin", forceLoad: false);
             }
             else
             {
@@ -345,6 +317,7 @@
                                           $"Check README.md for demo credentials\n" +
                                           $"Check FAILSAFE_AUTH_README.md for failsafe mode";
                 }
+                StateHasChanged(); // Update UI to show error
             }
         }
         catch (Exception ex)
@@ -366,10 +339,12 @@
                 
                 stackTrace = ex.StackTrace ?? "No stack trace available";
             }
+            StateHasChanged(); // Update UI to show error
         }
         finally
         {
             isLoading = false;
+            StateHasChanged(); // Update UI to clear loading state
         }
     }
 }
