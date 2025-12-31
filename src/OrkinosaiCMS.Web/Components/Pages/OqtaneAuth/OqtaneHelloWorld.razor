@@ -1,0 +1,483 @@
+@page "/oqtane-hello"
+@rendermode InteractiveServer
+@using OrkinosaiCMS.Web.Services
+@inject IOqtaneAuthService OqtaneAuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<OqtaneHelloWorld> Logger
+
+<PageTitle>Hello World - Oqtane Login Success</PageTitle>
+
+<div class="hello-world-container">
+    @if (isAuthenticated && currentUser != null)
+    {
+        <div class="hello-world-card">
+            <div class="success-animation">
+                <div class="checkmark-circle">
+                    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle class="checkmark-circle-svg" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="hello-world-content">
+                <h1 class="hello-world-title">Hello World!</h1>
+                <p class="hello-world-subtitle">🎉 Oqtane Authentication Successful!</p>
+                
+                <div class="user-info-card">
+                    <div class="user-avatar">
+                        <span class="avatar-letter">@GetInitial(currentUser.Username)</span>
+                    </div>
+                    <div class="user-details">
+                        <h3>Welcome, @currentUser.DisplayName</h3>
+                        <div class="user-meta">
+                            <div class="meta-item">
+                                <span class="meta-icon">👤</span>
+                                <span class="meta-label">Username:</span>
+                                <span class="meta-value">@currentUser.Username</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">📧</span>
+                                <span class="meta-label">Email:</span>
+                                <span class="meta-value">@currentUser.Email</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">🆔</span>
+                                <span class="meta-label">User ID:</span>
+                                <span class="meta-value">@currentUser.UserId</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-icon">🕐</span>
+                                <span class="meta-label">Logged in at:</span>
+                                <span class="meta-value">@currentUser.AuthenticatedAt.ToString("HH:mm:ss UTC")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="success-message">
+                    <div class="message-header">
+                        <span class="message-icon">✨</span>
+                        <h4>Authentication System Details</h4>
+                    </div>
+                    <div class="message-body">
+                        <p>
+                            You have successfully logged in using the <strong>Oqtane-based authentication system</strong>.
+                            This is a completely separate login mechanism, isolated from the main OrkinosaiCMS authentication.
+                        </p>
+                        <ul class="feature-list">
+                            <li>✅ Independent authentication flow</li>
+                            <li>✅ Oqtane-inspired architecture</li>
+                            <li>✅ Isolated from main system</li>
+                            <li>✅ Session-based user tracking</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="attribution-box">
+                    <p>
+                        <strong>🔗 Attribution:</strong> This authentication mechanism is inspired by 
+                        <a href="https://github.com/oqtane/oqtane.framework" target="_blank" rel="noopener">Oqtane CMS</a>,
+                        an open-source modular application framework built on Blazor.
+                    </p>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" @onclick="HandleLogout">
+                        <span class="btn-icon">🚪</span>
+                        Logout
+                    </button>
+                    <a href="/cms-home" class="btn btn-secondary">
+                        <span class="btn-icon">🏠</span>
+                        Back to Home
+                    </a>
+                    <a href="/oqtane-login" class="btn btn-secondary">
+                        <span class="btn-icon">🔐</span>
+                        Login Page
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="auth-required-card">
+            <div class="warning-icon">⚠️</div>
+            <h2>Authentication Required</h2>
+            <p>You need to log in with the Oqtane authentication system to view this page.</p>
+            <a href="/oqtane-login" class="btn btn-primary">
+                <span class="btn-icon">🔐</span>
+                Go to Oqtane Login
+            </a>
+        </div>
+    }
+</div>
+
+<style>
+    .hello-world-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        padding: 20px;
+    }
+
+    .hello-world-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+        padding: 50px 40px;
+        width: 100%;
+        max-width: 700px;
+        animation: fadeInScale 0.6s ease-out;
+    }
+
+    .auth-required-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+        padding: 50px 40px;
+        text-align: center;
+        max-width: 500px;
+    }
+
+    .warning-icon {
+        font-size: 72px;
+        margin-bottom: 20px;
+    }
+
+    .auth-required-card h2 {
+        color: #333;
+        margin-bottom: 16px;
+    }
+
+    .auth-required-card p {
+        color: #666;
+        margin-bottom: 24px;
+        font-size: 16px;
+    }
+
+    @@keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .success-animation {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+
+    .checkmark-circle {
+        width: 100px;
+        height: 100px;
+        position: relative;
+    }
+
+    .checkmark {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 3;
+        stroke: #4CAF50;
+        stroke-miterlimit: 10;
+        animation: fill 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
+    }
+
+    .checkmark-circle-svg {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke: #4CAF50;
+        fill: none;
+        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .checkmark-check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+
+    @@keyframes stroke {
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @@keyframes scale {
+        0%, 100% {
+            transform: none;
+        }
+        50% {
+            transform: scale3d(1.1, 1.1, 1);
+        }
+    }
+
+    @@keyframes fill {
+        100% {
+            box-shadow: inset 0px 0px 0px 30px #4CAF50;
+        }
+    }
+
+    .hello-world-content {
+        text-align: center;
+    }
+
+    .hello-world-title {
+        font-size: 48px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 12px;
+    }
+
+    .hello-world-subtitle {
+        font-size: 20px;
+        color: #666;
+        margin-bottom: 32px;
+        font-weight: 500;
+    }
+
+    .user-info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 28px;
+        margin-bottom: 28px;
+        color: white;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    }
+
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatar-letter {
+        font-size: 36px;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    .user-details h3 {
+        margin: 0 0 20px 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .user-meta {
+        display: grid;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 10px 16px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+
+    .meta-icon {
+        font-size: 20px;
+    }
+
+    .meta-label {
+        font-weight: 600;
+        min-width: 100px;
+    }
+
+    .meta-value {
+        font-weight: 400;
+        opacity: 0.95;
+    }
+
+    .success-message {
+        background: #f0f9ff;
+        border: 2px solid #0ea5e9;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        text-align: left;
+    }
+
+    .message-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .message-icon {
+        font-size: 24px;
+    }
+
+    .message-header h4 {
+        margin: 0;
+        color: #0369a1;
+        font-size: 18px;
+    }
+
+    .message-body p {
+        color: #333;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0 0 0;
+    }
+
+    .feature-list li {
+        padding: 6px 0;
+        color: #0369a1;
+        font-weight: 500;
+    }
+
+    .attribution-box {
+        background: #fff9e6;
+        border: 2px solid #fbbf24;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 28px;
+        text-align: left;
+    }
+
+    .attribution-box p {
+        margin: 0;
+        color: #92400e;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .attribution-box a {
+        color: #0078D4;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+
+    .attribution-box a:hover {
+        color: #005a9e;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-icon {
+        font-size: 18px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+    }
+</style>
+
+@code {
+    private OqtaneUserSession? currentUser;
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        try
+        {
+            isAuthenticated = OqtaneAuthService.IsAuthenticated;
+            
+            if (isAuthenticated)
+            {
+                currentUser = await OqtaneAuthService.GetCurrentOqtaneUserAsync();
+                Logger.LogInformation("Oqtane Hello World page accessed by user: {Username}", currentUser?.Username ?? "Unknown");
+            }
+            else
+            {
+                Logger.LogWarning("Oqtane Hello World page accessed without authentication");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking Oqtane authentication status");
+            isAuthenticated = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            Logger.LogInformation("Oqtane logout initiated for user: {Username}", currentUser?.Username ?? "Unknown");
+            await OqtaneAuthService.LogoutAsync();
+            NavigationManager.NavigateTo("/oqtane-login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during Oqtane logout");
+        }
+    }
+
+    private string GetInitial(string username)
+    {
+        return string.IsNullOrEmpty(username) ? "?" : username.Substring(0, 1).ToUpper();
+    }
+}
