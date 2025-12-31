@@ -1,0 +1,428 @@
+@page "/oqtane-login"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using OrkinosaiCMS.Web.Services
+@inject IOqtaneAuthService OqtaneAuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<OqtaneLogin> Logger
+
+<PageTitle>Oqtane Login - OrkinosaiCMS</PageTitle>
+
+<div class="oqtane-login-container">
+    <div class="oqtane-login-card">
+        <div class="oqtane-login-header">
+            <div class="oqtane-logo">
+                <svg width="60" height="60" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" fill="#0078D4" opacity="0.1"/>
+                    <path d="M 30 30 L 70 30 L 70 50 L 50 70 L 30 50 Z" fill="#0078D4"/>
+                </svg>
+            </div>
+            <h2>Oqtane Authentication</h2>
+            <p class="subtitle">Separate Login System Inspired by Oqtane CMS</p>
+            <div class="info-badge">
+                <span class="badge-icon">ℹ️</span>
+                <span>This is a separate login mechanism, isolated from the main system</span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>❌ Login Failed</strong>
+                <p>@errorMessage</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                <strong>✅ Success</strong>
+                <p>@successMessage</p>
+            </div>
+        }
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleOqtaneLogin" class="oqtane-login-form" FormName="OqtaneLoginForm">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group">
+                <label for="oqtane-username">
+                    <span class="label-icon">👤</span>
+                    Username
+                </label>
+                <InputText id="oqtane-username" 
+                          class="form-control" 
+                          @bind-Value="loginModel!.Username" 
+                          placeholder="Enter your username"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => loginModel!.Username)" />
+            </div>
+
+            <div class="form-group">
+                <label for="oqtane-password">
+                    <span class="label-icon">🔒</span>
+                    Password
+                </label>
+                <InputText id="oqtane-password" 
+                          type="password" 
+                          class="form-control" 
+                          @bind-Value="loginModel!.Password" 
+                          placeholder="Enter your password"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => loginModel!.Password)" />
+            </div>
+
+            <button type="submit" class="btn btn-oqtane btn-block" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Authenticating...</span>
+                }
+                else
+                {
+                    <span>🚀 Sign In with Oqtane</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="oqtane-login-footer">
+            <div class="demo-credentials">
+                <div class="credentials-header">
+                    <span class="credential-icon">🔑</span>
+                    <strong>Demo Credentials</strong>
+                </div>
+                <div class="credentials-body">
+                    <p><strong>Username:</strong> Any username</p>
+                    <p><strong>Password:</strong> oqtane123</p>
+                </div>
+            </div>
+            
+            <div class="attribution">
+                <p>
+                    <small>
+                        <strong>Attribution:</strong> Authentication logic inspired by 
+                        <a href="https://github.com/oqtane/oqtane.framework" target="_blank" rel="noopener">
+                            Oqtane CMS Framework
+                        </a>
+                    </small>
+                </p>
+            </div>
+
+            <div class="back-link">
+                <a href="/cms-home" class="text-muted">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .oqtane-login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
+        padding: 20px;
+    }
+
+    .oqtane-login-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        width: 100%;
+        max-width: 500px;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .oqtane-login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .oqtane-logo {
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .oqtane-login-header h2 {
+        color: #0078D4;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 15px;
+        margin: 0 0 16px 0;
+    }
+
+    .info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #E7F3FF;
+        color: #0078D4;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+
+    .badge-icon {
+        font-size: 18px;
+    }
+
+    .oqtane-login-form {
+        margin-bottom: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .label-icon {
+        font-size: 16px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background: #f9f9f9;
+    }
+
+    .form-control:focus {
+        border-color: #0078D4;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(0, 120, 212, 0.1);
+        background: white;
+    }
+
+    .form-control:disabled {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .btn-block {
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 8px;
+    }
+
+    .btn-oqtane {
+        background: linear-gradient(135deg, #0078D4, #00BCF2);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-oqtane:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 120, 212, 0.4);
+    }
+
+    .btn-oqtane:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .alert {
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+    .alert-danger {
+        background-color: #fee;
+        color: #c33;
+        border: 2px solid #fcc;
+    }
+
+    .alert-success {
+        background-color: #efe;
+        color: #3a3;
+        border: 2px solid #cfc;
+    }
+
+    .alert strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 15px;
+    }
+
+    .oqtane-login-footer {
+        padding-top: 24px;
+        border-top: 2px solid #f0f0f0;
+    }
+
+    .demo-credentials {
+        background: #F7F9FB;
+        border: 2px solid #E0E8F0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .credentials-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        color: #0078D4;
+    }
+
+    .credential-icon {
+        font-size: 20px;
+    }
+
+    .credentials-body p {
+        margin: 6px 0;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .attribution {
+        text-align: center;
+        margin: 16px 0;
+        padding: 12px;
+        background: #FFF9E6;
+        border-radius: 8px;
+    }
+
+    .attribution a {
+        color: #0078D4;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+
+    .attribution a:hover {
+        color: #005a9e;
+    }
+
+    .back-link {
+        text-align: center;
+        margin-top: 16px;
+    }
+
+    .back-link a {
+        color: #666;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s;
+    }
+
+    .back-link a:hover {
+        color: #0078D4;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 6px;
+        display: block;
+        font-weight: 500;
+    }
+</style>
+
+@code {
+    private LoginModel? loginModel { get; set; }
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        loginModel ??= new LoginModel();
+    }
+
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "Username is required")]
+        [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private async Task HandleOqtaneLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+            StateHasChanged();
+
+            Logger.LogInformation("Oqtane login attempt for user: {Username}", loginModel!.Username);
+
+            var success = await OqtaneAuthService.AuthenticateAsync(loginModel.Username, loginModel.Password);
+
+            if (success)
+            {
+                Logger.LogInformation("Oqtane login successful for user: {Username}", loginModel.Username);
+                successMessage = "Authentication successful! Redirecting...";
+                StateHasChanged();
+                
+                // Wait a moment to show success message
+                await Task.Delay(1000);
+                
+                // Navigate to Hello World page
+                NavigationManager.NavigateTo("/oqtane-hello", forceLoad: false);
+            }
+            else
+            {
+                Logger.LogWarning("Oqtane login failed for user: {Username}", loginModel.Username);
+                errorMessage = "Invalid username or password. Please check your credentials and try again.";
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception during Oqtane login for user: {Username}", loginModel!.Username);
+            errorMessage = "An unexpected error occurred. Please try again later.";
+            StateHasChanged();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

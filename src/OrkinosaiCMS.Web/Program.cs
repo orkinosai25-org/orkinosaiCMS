@@ -63,6 +63,9 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStat
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
+// Register Oqtane Authentication Service (separate from main auth)
+builder.Services.AddScoped<IOqtaneAuthService, OqtaneAuthService>();
+
 // Configure Database
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
