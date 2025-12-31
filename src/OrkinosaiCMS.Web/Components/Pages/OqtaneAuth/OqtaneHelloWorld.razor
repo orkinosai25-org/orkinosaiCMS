@@ -1,7 +1,9 @@
 @page "/oqtane-hello"
 @rendermode InteractiveServer
 @using OrkinosaiCMS.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IOqtaneAuthService OqtaneAuthService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject ILogger<OqtaneHelloWorld> Logger
 
@@ -47,6 +49,11 @@
                                 <span class="meta-value">@currentUser.UserId</span>
                             </div>
                             <div class="meta-item">
+                                <span class="meta-icon">👥</span>
+                                <span class="meta-label">Role:</span>
+                                <span class="meta-value">@currentUser.Role</span>
+                            </div>
+                            <div class="meta-item">
                                 <span class="meta-icon">🕐</span>
                                 <span class="meta-label">Logged in at:</span>
                                 <span class="meta-value">@currentUser.AuthenticatedAt.ToString("HH:mm:ss UTC")</span>
@@ -83,6 +90,13 @@
                 </div>
 
                 <div class="action-buttons">
+                    @if (isAdmin)
+                    {
+                        <a href="/admin" class="btn btn-admin">
+                            <span class="btn-icon">⚙️</span>
+                            Admin Panel
+                        </a>
+                    }
                     <button class="btn btn-primary" @onclick="HandleLogout">
                         <span class="btn-icon">🚪</span>
                         Logout
@@ -419,6 +433,17 @@
         box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
     }
 
+    .btn-admin {
+        background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-admin:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 120, 212, 0.4);
+    }
+
     .btn-secondary {
         background: #f1f5f9;
         color: #475569;
@@ -433,6 +458,7 @@
 @code {
     private OqtaneUserSession? currentUser;
     private bool isAuthenticated = false;
+    private bool isAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -448,7 +474,14 @@
             if (isAuthenticated)
             {
                 currentUser = await OqtaneAuthService.GetCurrentOqtaneUserAsync();
-                Logger.LogInformation("Oqtane Hello World page accessed by user: {Username}", currentUser?.Username ?? "Unknown");
+                
+                // Check if user has Administrator role
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                isAdmin = user.IsInRole("Administrator");
+                
+                Logger.LogInformation("Oqtane Hello World page accessed by user: {Username}, IsAdmin: {IsAdmin}", 
+                    currentUser?.Username ?? "Unknown", isAdmin);
             }
             else
             {
