@@ -295,13 +295,13 @@
                 
                 if (user.IsInRole("Administrator"))
                 {
-                    // Redirect admin users to admin panel
-                    NavigationManager.NavigateTo("/admin", forceLoad: false);
+                    // Redirect admin users to admin panel with forceLoad to ensure auth state is fully propagated
+                    NavigationManager.NavigateTo("/admin", forceLoad: true);
                 }
                 else
                 {
-                    // Redirect regular users to home page
-                    NavigationManager.NavigateTo("/cms-home", forceLoad: false);
+                    // Redirect regular users to home page with forceLoad to ensure auth state is fully propagated
+                    NavigationManager.NavigateTo("/cms-home", forceLoad: true);
                 }
             }
             else

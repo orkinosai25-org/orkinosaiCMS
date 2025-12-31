@@ -404,8 +404,8 @@
                 // Wait a moment to show success message
                 await Task.Delay(1000);
                 
-                // Navigate to Hello World page
-                NavigationManager.NavigateTo("/oqtane-hello", forceLoad: false);
+                // Navigate to Hello World page with forceLoad to ensure auth state is fully propagated
+                NavigationManager.NavigateTo("/oqtane-hello", forceLoad: true);
             }
             else
             {

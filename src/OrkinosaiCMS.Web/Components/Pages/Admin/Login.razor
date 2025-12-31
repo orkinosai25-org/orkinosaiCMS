@@ -304,8 +304,8 @@
                 // Small delay to ensure authentication state is persisted
                 await Task.Delay(SESSION_PERSIST_DELAY_MS);
                 
-                // Navigate to admin dashboard
-                NavigationManager.NavigateTo("/admin", forceLoad: false);
+                // Navigate to admin dashboard with forceLoad to ensure auth state is fully propagated
+                NavigationManager.NavigateTo("/admin", forceLoad: true);
             }
             else
             {
