@@ -68,9 +68,11 @@ Navigate to `https://localhost:5001`
 
 ### 6. Access the Admin Panel
 
-Navigate to `https://localhost:5001/admin/login` and sign in with:
-- **Username:** `admin`
-- **Password:** `Admin@123`
+Navigate to `https://localhost:5001/oqtane-login` and sign in with:
+- **Username:** `admin` (or any username containing "admin")
+- **Password:** `oqtane123`
+
+> **Note**: The system now uses Oqtane-based authentication exclusively. Visiting `/admin/login` or `/login` will automatically redirect to `/oqtane-login`.
 
 Visit `/cms-home` to see the demo website!
 

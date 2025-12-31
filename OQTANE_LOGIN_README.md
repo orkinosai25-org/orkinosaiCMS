@@ -2,21 +2,24 @@
 
 ## Overview
 
-This document describes the Oqtane-based login mechanism implemented in OrkinosaiCMS. This authentication system is integrated with the main CMS authentication, providing a unified login experience inspired by Oqtane CMS architecture.
+This document describes the Oqtane-based login mechanism implemented in OrkinosaiCMS. This authentication system is **the primary and only authentication method** for OrkinosaiCMS, providing a unified login experience inspired by Oqtane CMS architecture.
+
+> **Important**: As of the latest update, this is the **only authentication system** in OrkinosaiCMS. The previous separate login systems have been removed, and all login routes (`/login` and `/admin/login`) now redirect to `/oqtane-login`.
 
 ## Purpose
 
 This implementation demonstrates:
-- **Integrated Authentication Flow**: Fully integrated with the main OrkinosaiCMS authentication system
+- **Unified Authentication Flow**: Single authentication system for all users
 - **Oqtane Architecture Reference**: Authentication logic inspired by Oqtane CMS framework
 - **Role-Based Access Control**: Automatic role assignment based on username patterns
-- **Unified Experience**: Uses JWT tokens and integrates with `AuthorizeView` components
+- **Integrated Experience**: Uses JWT tokens and integrates with `AuthorizeView` components
 
 ## Features
 
-### 1. Integrated Login Flow
-- Separate login page at `/oqtane-login`
-- Fully integrated with main authentication system via JWT tokens
+### 1. Primary Login Flow
+- Main login page at `/oqtane-login`
+- All other login routes (`/login`, `/admin/login`) redirect here automatically
+- Fully integrated authentication system via JWT tokens
 - Uses `OqtaneAuthService` which updates `CustomAuthenticationStateProvider`
 - Admin menu and settings visible when logged in as administrator
 
@@ -33,7 +36,7 @@ This implementation demonstrates:
 - Admin users see "Admin Panel" button on this page
 
 ### 4. Navigation Integration
-- "🚀 Oqtane Login" link in the main navigation header when not authenticated
+- **Single "🚀 Oqtane Login" link** in the main navigation header when not authenticated
 - After login, shows "Welcome, {username}" message
 - Admin users see "⚙️ Admin Panel" link
 - "Logout" link available when authenticated
@@ -196,19 +199,23 @@ For production use, you should:
 9. **Validate and sanitize all user inputs**
 10. **Implement proper role-based access control validation**
 
-## Differences from Main Authentication
+## Authentication System
 
-| Feature | Main Authentication | Oqtane Authentication |
-|---------|-------------------|---------------------|
-| Login URL | `/login` or `/admin/login` | `/oqtane-login` |
-| Service | `AuthenticationService` | `OqtaneAuthService` |
-| Session Storage | JWT tokens via `CustomAuthenticationStateProvider` | JWT tokens via `CustomAuthenticationStateProvider` |
-| Demo Password | `Admin@123` | `oqtane123` |
-| Success Page | Admin dashboard or home | Hello World page |
-| User Database | Uses main user database | Demo-only (username pattern matching) |
-| Navigation Link | "Login" | "🚀 Oqtane Login" |
-| Role Assignment | Database-driven | Pattern-based (username contains "admin") |
-| Integration | Full system integration | **Now fully integrated** with main system |
+**Oqtane Authentication is now the only authentication system in OrkinosaiCMS.**
+
+| Feature | Details |
+|---------|---------|
+| Login URL | `/oqtane-login` (all other login routes redirect here) |
+| Service | `OqtaneAuthService` |
+| Session Storage | JWT tokens via `CustomAuthenticationStateProvider` |
+| Demo Password | `oqtane123` |
+| Success Page | Hello World page at `/oqtane-hello` |
+| User Authentication | Demo-only (username pattern matching) |
+| Navigation Link | "🚀 Oqtane Login" |
+| Role Assignment | Pattern-based (username contains "admin" = Administrator, otherwise User) |
+| Integration | Fully integrated with entire system |
+
+> **Migration Note**: The previous separate authentication systems have been removed. All authentication now flows through the Oqtane system for consistency and simplicity.
 
 ## Testing
 
