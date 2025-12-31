@@ -2,36 +2,48 @@
 
 ## Overview
 
-This document describes the separate Oqtane-based login mechanism implemented in OrkinosaiCMS. This is a completely independent authentication system, isolated from the main CMS authentication, serving as a demonstration of Oqtane-inspired architecture.
+This document describes the Oqtane-based login mechanism implemented in OrkinosaiCMS. This authentication system is integrated with the main CMS authentication, providing a unified login experience inspired by Oqtane CMS architecture.
 
 ## Purpose
 
 This implementation demonstrates:
-- **Isolated Authentication Flow**: Completely separate from the main OrkinosaiCMS authentication system
+- **Integrated Authentication Flow**: Fully integrated with the main OrkinosaiCMS authentication system
 - **Oqtane Architecture Reference**: Authentication logic inspired by Oqtane CMS framework
-- **Modular Design**: Shows how multiple authentication mechanisms can coexist in the same application
+- **Role-Based Access Control**: Automatic role assignment based on username patterns
+- **Unified Experience**: Uses JWT tokens and integrates with `AuthorizeView` components
 
 ## Features
 
-### 1. Independent Login Flow
+### 1. Integrated Login Flow
 - Separate login page at `/oqtane-login`
-- Does not interfere with existing authentication (`/login` or `/admin/login`)
-- Uses its own service (`OqtaneAuthService`) for user session management
+- Fully integrated with main authentication system via JWT tokens
+- Uses `OqtaneAuthService` which updates `CustomAuthenticationStateProvider`
+- Admin menu and settings visible when logged in as administrator
 
-### 2. Hello World Confirmation
+### 2. Role-Based Authentication
+- **Administrator Role**: Assigned when username contains "admin" (case-insensitive)
+- **User Role**: Assigned to all other usernames
+- Roles integrate with Blazor's `<AuthorizeView>` components
+- Admin users see "⚙️ Admin Panel" link in navigation
+
+### 3. Hello World Confirmation
 - Upon successful login, displays a dedicated "Hello World" page at `/oqtane-hello`
-- Shows authenticated user information
+- Shows authenticated user information including role
 - Provides clear visual confirmation of successful authentication
+- Admin users see "Admin Panel" button on this page
 
-### 3. Navigation Integration
-- New "🚀 Oqtane Login" link in the main navigation header
-- Visible when users are not authenticated
-- Distinctive purple gradient styling to differentiate from main login
+### 4. Navigation Integration
+- "🚀 Oqtane Login" link in the main navigation header when not authenticated
+- After login, shows "Welcome, {username}" message
+- Admin users see "⚙️ Admin Panel" link
+- "Logout" link available when authenticated
+- Distinctive purple gradient styling for Oqtane login button
 
-### 4. Session Management
-- In-memory session tracking for Oqtane users
-- Separate from JWT-based main authentication
-- Demonstrates simple session-based authentication pattern
+### 5. Session Management
+- JWT-based authentication tokens
+- Integrated with `CustomAuthenticationStateProvider`
+- Session persists across page navigation
+- Proper logout clears authentication state
 
 ## File Structure
 
@@ -62,8 +74,9 @@ src/OrkinosaiCMS.Web/
 ### Demo Credentials
 
 The Oqtane authentication system accepts:
-- **Username**: Any username (minimum 3 characters)
-- **Password**: `oqtane123`
+- **Password**: `oqtane123` (required for all users)
+- **Admin Access**: Use username containing "admin" (e.g., `admin`, `testadmin`, `myadmin`)
+- **Regular User**: Any username without "admin" (e.g., `john`, `testuser`)
 
 This is a demo implementation. In a production scenario, credentials would be validated against a proper user database.
 
@@ -90,27 +103,31 @@ On the Hello World page, click the "Logout" button to:
 ### OqtaneAuthService
 
 The `OqtaneAuthService` provides:
-- `AuthenticateAsync()`: Validates credentials and creates session
+- `AuthenticateAsync()`: Validates credentials, determines role, creates JWT token, and updates authentication state
 - `GetCurrentOqtaneUserAsync()`: Retrieves current user session
-- `LogoutAsync()`: Clears the user session
+- `LogoutAsync()`: Clears the user session and authentication state
 - `IsAuthenticated`: Property indicating authentication status
+
+The service integrates with `CustomAuthenticationStateProvider` to ensure authentication works across the entire application.
 
 ### OqtaneUserSession
 
-Simple session object containing:
+Session object containing:
 - `UserId`: Generated from username hash
 - `Username`: User's login name
 - `DisplayName`: Formatted display name
 - `Email`: Generated email address
+- `Role`: "Administrator" or "User" based on username
 - `AuthenticatedAt`: Timestamp of authentication
 
-### Isolation from Main System
+### Integration with Main System
 
-The Oqtane authentication is completely isolated:
-- Uses `IOqtaneAuthService` interface (not `IAuthenticationService`)
-- Sessions stored separately in `OqtaneAuthService` (not in JWT tokens)
-- Pages in dedicated `/OqtaneAuth/` folder
-- Routes use `/oqtane-*` prefix
+The Oqtane authentication is **fully integrated** with the main system:
+- Uses `CustomAuthenticationStateProvider` for authentication state management
+- Creates JWT tokens via `IJwtTokenService`
+- Sessions work with Blazor's `<AuthorizeView>` components
+- Admin roles grant access to admin-only features
+- Single logout clears all authentication state
 
 ## Attribution
 
@@ -173,9 +190,11 @@ For production use, you should:
 3. **Use HTTPS** for all authentication traffic
 4. **Implement rate limiting** to prevent brute force attacks
 5. **Add CSRF protection** for authentication forms
-6. **Consider using JWT tokens** or secure session storage
+6. **Use secure JWT token storage** with appropriate expiration times
 7. **Implement account lockout** after failed login attempts
 8. **Add multi-factor authentication** for enhanced security
+9. **Validate and sanitize all user inputs**
+10. **Implement proper role-based access control validation**
 
 ## Differences from Main Authentication
 
@@ -183,11 +202,13 @@ For production use, you should:
 |---------|-------------------|---------------------|
 | Login URL | `/login` or `/admin/login` | `/oqtane-login` |
 | Service | `AuthenticationService` | `OqtaneAuthService` |
-| Session Storage | JWT tokens in protected storage | In-memory session |
+| Session Storage | JWT tokens via `CustomAuthenticationStateProvider` | JWT tokens via `CustomAuthenticationStateProvider` |
 | Demo Password | `Admin@123` | `oqtane123` |
 | Success Page | Admin dashboard or home | Hello World page |
-| Database | Uses main user database | Demo-only (in-memory) |
+| User Database | Uses main user database | Demo-only (username pattern matching) |
 | Navigation Link | "Login" | "🚀 Oqtane Login" |
+| Role Assignment | Database-driven | Pattern-based (username contains "admin") |
+| Integration | Full system integration | **Now fully integrated** with main system |
 
 ## Testing
 

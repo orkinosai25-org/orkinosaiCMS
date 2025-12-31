@@ -1,11 +1,12 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace OrkinosaiCMS.Web.Services;
 
 /// <summary>
 /// Separate Oqtane-based authentication service
 /// Inspired by Oqtane CMS authentication logic
-/// Completely isolated from the main authentication system
+/// Now integrated with the main authentication system
 /// </summary>
 public interface IOqtaneAuthService
 {
@@ -18,11 +19,18 @@ public interface IOqtaneAuthService
 public class OqtaneAuthService : IOqtaneAuthService
 {
     private readonly ILogger<OqtaneAuthService> _logger;
+    private readonly CustomAuthenticationStateProvider _authStateProvider;
+    private readonly IJwtTokenService _jwtTokenService;
     private OqtaneUserSession? _currentSession;
 
-    public OqtaneAuthService(ILogger<OqtaneAuthService> logger)
+    public OqtaneAuthService(
+        ILogger<OqtaneAuthService> logger,
+        AuthenticationStateProvider authStateProvider,
+        IJwtTokenService jwtTokenService)
     {
         _logger = logger;
+        _authStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        _jwtTokenService = jwtTokenService;
     }
 
     public bool IsAuthenticated => _currentSession != null;
@@ -30,9 +38,10 @@ public class OqtaneAuthService : IOqtaneAuthService
     /// <summary>
     /// Authenticate user using Oqtane-style logic
     /// For demo purposes, accepts any username with password "oqtane123"
-    /// In a real implementation, this would validate against a separate user store
+    /// Creates proper authentication state with JWT token and claims
+    /// Admins get administrator role, others get user role
     /// </summary>
-    public Task<bool> AuthenticateAsync(string username, string password)
+    public async Task<bool> AuthenticateAsync(string username, string password)
     {
         _logger.LogInformation("Oqtane Auth: Authentication attempt for user {Username}", username);
 
@@ -41,27 +50,61 @@ public class OqtaneAuthService : IOqtaneAuthService
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
             _logger.LogWarning("Oqtane Auth: Empty username or password");
-            return Task.FromResult(false);
+            return false;
         }
 
         // Simple authentication for demo - in real scenario, this would check against Oqtane user database
         if (password == "oqtane123")
         {
+            var userId = GenerateUserId(username);
+            var displayName = $"Oqtane User - {username}";
+            var email = $"{username}@oqtane.local";
+            
+            // Determine role - if username contains "admin" (case insensitive), grant Administrator role
+            var role = username.Contains("admin", StringComparison.OrdinalIgnoreCase) 
+                ? "Administrator" 
+                : "User";
+
             _currentSession = new OqtaneUserSession
             {
-                UserId = GenerateUserId(username),
+                UserId = userId,
                 Username = username,
-                DisplayName = $"Oqtane User - {username}",
-                Email = $"{username}@oqtane.local",
+                DisplayName = displayName,
+                Email = email,
+                Role = role,
                 AuthenticatedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation("Oqtane Auth: User {Username} authenticated successfully", username);
-            return Task.FromResult(true);
+            // Generate JWT token for this Oqtane user
+            var jwtToken = _jwtTokenService.GenerateToken(
+                userId: userId,
+                username: username,
+                email: email,
+                displayName: displayName,
+                role: role,
+                isFailsafeMode: false);
+
+            // Create user session for the main authentication system
+            var userSession = new UserSession
+            {
+                UserId = userId,
+                Username = username,
+                Email = email,
+                DisplayName = displayName,
+                Role = role,
+                JwtToken = jwtToken,
+                IsFailsafeMode = false
+            };
+
+            // Update authentication state so the user is logged in across the entire app
+            await _authStateProvider.UpdateAuthenticationState(userSession);
+
+            _logger.LogInformation("Oqtane Auth: User {Username} authenticated successfully with role {Role}", username, role);
+            return true;
         }
 
         _logger.LogWarning("Oqtane Auth: Authentication failed for user {Username}", username);
-        return Task.FromResult(false);
+        return false;
     }
 
     public Task<OqtaneUserSession?> GetCurrentOqtaneUserAsync()
@@ -69,11 +112,13 @@ public class OqtaneAuthService : IOqtaneAuthService
         return Task.FromResult(_currentSession);
     }
 
-    public Task LogoutAsync()
+    public async Task LogoutAsync()
     {
         _logger.LogInformation("Oqtane Auth: User {Username} logged out", _currentSession?.Username ?? "Unknown");
         _currentSession = null;
-        return Task.CompletedTask;
+        
+        // Clear authentication state in the main system
+        await _authStateProvider.UpdateAuthenticationState(null);
     }
 
     private int GenerateUserId(string username)
@@ -86,7 +131,7 @@ public class OqtaneAuthService : IOqtaneAuthService
 
 /// <summary>
 /// Represents an Oqtane user session
-/// Separate from the main authentication system
+/// Now integrated with the main authentication system
 /// </summary>
 public class OqtaneUserSession
 {
@@ -94,5 +139,6 @@ public class OqtaneUserSession
     public string Username { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = "User";
     public DateTime AuthenticatedAt { get; set; }
 }
