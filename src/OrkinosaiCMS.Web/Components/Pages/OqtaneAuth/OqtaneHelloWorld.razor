@@ -101,10 +101,10 @@
                 <div class="action-buttons">
                     @if (isAdmin)
                     {
-                        <a href="/admin" class="btn btn-admin">
+                        <button class="btn btn-admin" @onclick="HandleAdminPanelClick">
                             <span class="btn-icon">⚙️</span>
                             Admin Panel
-                        </a>
+                        </button>
                     }
                     <button class="btn btn-primary" @onclick="HandleLogout">
                         <span class="btn-icon">🚪</span>
@@ -520,6 +520,20 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during Oqtane logout");
+        }
+    }
+
+    private void HandleAdminPanelClick()
+    {
+        try
+        {
+            Logger.LogInformation("Admin panel navigation for user: {Username}", currentUser?.Username ?? "Unknown");
+            // Use forceLoad to ensure authentication state is properly loaded on the admin page
+            NavigationManager.NavigateTo("/admin", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error navigating to admin panel");
         }
     }
 

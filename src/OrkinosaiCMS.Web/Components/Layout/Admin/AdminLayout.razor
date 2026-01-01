@@ -250,16 +250,28 @@ else
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
 
+            Logger.LogInformation("AdminLayout: Checking authentication. IsAuthenticated: {IsAuth}, User: {User}", 
+                user.Identity?.IsAuthenticated, user.Identity?.Name);
+
             if (user.Identity?.IsAuthenticated ?? false)
             {
                 // Get username from claims first
                 username = user.Identity.Name ?? "Admin";
                 
                 // Check if user is an Administrator
-                isAuthenticated = user.IsInRole("Administrator");
+                var isAdmin = user.IsInRole("Administrator");
+                Logger.LogInformation("AdminLayout: User {Username} is authenticated. IsAdmin: {IsAdmin}", username, isAdmin);
+                
+                isAuthenticated = isAdmin;
+                
+                if (!isAdmin)
+                {
+                    Logger.LogWarning("AdminLayout: User {Username} is not an administrator. Redirecting to login.", username);
+                }
             }
             else
             {
+                Logger.LogWarning("AdminLayout: User is not authenticated. Redirecting to login.");
                 isAuthenticated = false;
             }
         }
