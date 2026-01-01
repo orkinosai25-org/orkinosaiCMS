@@ -404,8 +404,20 @@
                 // Wait a moment to show success message
                 await Task.Delay(1000);
                 
-                // Navigate to Hello World page with forceLoad to ensure auth state is fully propagated
-                NavigationManager.NavigateTo("/oqtane-hello", forceLoad: true);
+                // Check if user is an admin - if so, redirect directly to admin panel
+                // Otherwise, redirect to Hello World page
+                var isAdmin = loginModel.Username.Contains("admin", StringComparison.OrdinalIgnoreCase);
+                
+                if (isAdmin)
+                {
+                    Logger.LogInformation("Redirecting admin user {Username} directly to admin panel", loginModel.Username);
+                    NavigationManager.NavigateTo("/admin", forceLoad: true);
+                }
+                else
+                {
+                    Logger.LogInformation("Redirecting regular user {Username} to Hello World page", loginModel.Username);
+                    NavigationManager.NavigateTo("/oqtane-hello", forceLoad: true);
+                }
             }
             else
             {
