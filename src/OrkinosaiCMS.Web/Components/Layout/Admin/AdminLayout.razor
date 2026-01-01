@@ -252,7 +252,7 @@ else
         {
             hasCheckedAfterRender = true;
             await CheckAuthenticationAsync();
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
