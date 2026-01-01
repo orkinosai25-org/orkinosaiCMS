@@ -398,11 +398,6 @@
             if (success)
             {
                 Logger.LogInformation("Oqtane login successful for user: {Username}", loginModel.Username);
-                successMessage = "Authentication successful! Redirecting...";
-                StateHasChanged();
-                
-                // Wait a moment to show success message
-                await Task.Delay(1000);
                 
                 // Check if user is an admin - if so, redirect directly to admin panel
                 // Otherwise, redirect to Hello World page
@@ -411,6 +406,7 @@
                 if (isAdmin)
                 {
                     Logger.LogInformation("Redirecting admin user {Username} directly to admin panel", loginModel.Username);
+                    // Force page reload to ensure auth state is fully loaded
                     NavigationManager.NavigateTo("/admin", forceLoad: true);
                 }
                 else
