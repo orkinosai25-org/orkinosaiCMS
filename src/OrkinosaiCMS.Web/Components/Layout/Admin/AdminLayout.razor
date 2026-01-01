@@ -237,10 +237,23 @@ else
 @code {
     private bool? isAuthenticated = null;
     private string username = "Admin";
+    private bool hasCheckedAfterRender = false;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckAuthenticationAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // After the first render (when JS interop is available), re-check authentication
+        // This ensures session storage is accessible after a full page reload
+        if (firstRender && !hasCheckedAfterRender)
+        {
+            hasCheckedAfterRender = true;
+            await CheckAuthenticationAsync();
+            StateHasChanged();
+        }
     }
 
     private async Task CheckAuthenticationAsync()
