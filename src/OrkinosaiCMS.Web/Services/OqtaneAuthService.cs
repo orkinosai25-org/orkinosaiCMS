@@ -33,7 +33,15 @@ public class OqtaneAuthService : IOqtaneAuthService
         _jwtTokenService = jwtTokenService;
     }
 
-    public bool IsAuthenticated => _currentSession != null;
+    public bool IsAuthenticated
+    {
+        get
+        {
+            // Check authentication state from the provider instead of relying on in-memory session
+            var authState = _authStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+            return authState.User.Identity?.IsAuthenticated ?? false;
+        }
+    }
 
     /// <summary>
     /// Authenticate user using Oqtane-style logic
@@ -107,9 +115,50 @@ public class OqtaneAuthService : IOqtaneAuthService
         return false;
     }
 
-    public Task<OqtaneUserSession?> GetCurrentOqtaneUserAsync()
+    public async Task<OqtaneUserSession?> GetCurrentOqtaneUserAsync()
     {
-        return Task.FromResult(_currentSession);
+        // If we have an in-memory session, return it
+        if (_currentSession != null)
+        {
+            return _currentSession;
+        }
+
+        // Otherwise, retrieve from authentication state claims
+        try
+        {
+            var authState = await _authStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var username = user.FindFirst(ClaimTypes.Name)?.Value;
+                var email = user.FindFirst(ClaimTypes.Email)?.Value;
+                var displayName = user.FindFirst("DisplayName")?.Value;
+                var role = user.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (!string.IsNullOrEmpty(username))
+                {
+                    _currentSession = new OqtaneUserSession
+                    {
+                        UserId = int.TryParse(userId, out var id) ? id : 0,
+                        Username = username,
+                        DisplayName = displayName ?? username,
+                        Email = email ?? $"{username}@oqtane.local",
+                        Role = role ?? "User",
+                        AuthenticatedAt = DateTime.UtcNow
+                    };
+
+                    return _currentSession;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving current Oqtane user from authentication state");
+        }
+
+        return null;
     }
 
     public async Task LogoutAsync()

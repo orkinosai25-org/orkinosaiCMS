@@ -10,7 +10,16 @@
 <PageTitle>Hello World - Oqtane Login Success</PageTitle>
 
 <div class="hello-world-container">
-    @if (isAuthenticated && currentUser != null)
+    @if (!hasCheckedAuth)
+    {
+        <div class="auth-required-card">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p style="margin-top: 20px;">Checking authentication...</p>
+        </div>
+    }
+    else if (isAuthenticated && currentUser != null)
     {
         <div class="hello-world-card">
             <div class="success-animation">
@@ -459,25 +468,30 @@
     private OqtaneUserSession? currentUser;
     private bool isAuthenticated = false;
     private bool isAdmin = false;
+    private bool hasCheckedAuth = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await CheckAuthentication();
+        if (firstRender && !hasCheckedAuth)
+        {
+            hasCheckedAuth = true;
+            await CheckAuthentication();
+            StateHasChanged();
+        }
     }
 
     private async Task CheckAuthentication()
     {
         try
         {
-            isAuthenticated = OqtaneAuthService.IsAuthenticated;
+            // Check authentication state directly instead of using the IsAuthenticated property
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            isAuthenticated = user.Identity?.IsAuthenticated ?? false;
             
             if (isAuthenticated)
             {
                 currentUser = await OqtaneAuthService.GetCurrentOqtaneUserAsync();
-                
-                // Check if user has Administrator role
-                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
                 isAdmin = user.IsInRole("Administrator");
                 
                 Logger.LogInformation("Oqtane Hello World page accessed by user: {Username}, IsAdmin: {IsAdmin}", 
