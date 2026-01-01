@@ -93,6 +93,7 @@ public class OqtaneAuthService : IOqtaneAuthService
                 isFailsafeMode: false);
 
             // Create user session for the main authentication system
+            // Set IsFailsafeMode to true since Oqtane users don't exist in the database
             var userSession = new UserSession
             {
                 UserId = userId,
@@ -101,7 +102,7 @@ public class OqtaneAuthService : IOqtaneAuthService
                 DisplayName = displayName,
                 Role = role,
                 JwtToken = jwtToken,
-                IsFailsafeMode = false
+                IsFailsafeMode = true  // Oqtane users are not in database
             };
 
             // Update authentication state so the user is logged in across the entire app
