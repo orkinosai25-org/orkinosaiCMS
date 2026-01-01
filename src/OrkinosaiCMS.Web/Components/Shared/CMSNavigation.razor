@@ -23,7 +23,7 @@
                 <span class="nav-welcome">Welcome, @context.User.Identity?.Name</span>
                 <AuthorizeView Roles="Administrator" Context="adminContext">
                     <Authorized>
-                        <a class="nav-link nav-admin" href="/admin">
+                        <a class="nav-link nav-admin" href="#" @onclick="HandleAdminClick" @onclick:preventDefault>
                             <span class="admin-icon">⚙️</span> Admin Panel
                         </a>
                     </Authorized>
@@ -179,5 +179,11 @@
     {
         await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("/cms-home", true);
+    }
+
+    private void HandleAdminClick()
+    {
+        // Use forceLoad to ensure authentication state is properly reloaded
+        NavigationManager.NavigateTo("/admin", forceLoad: true);
     }
 }
