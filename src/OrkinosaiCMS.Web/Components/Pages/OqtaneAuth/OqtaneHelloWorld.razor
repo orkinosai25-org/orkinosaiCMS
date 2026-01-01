@@ -528,8 +528,8 @@
         try
         {
             Logger.LogDebug("Admin panel navigation for user ID: {UserId}", currentUser?.UserId ?? 0);
-            // Use forceLoad to ensure authentication state is properly loaded on the admin page
-            NavigationManager.NavigateTo("/admin", forceLoad: true);
+            // Navigate to admin panel - auth state is maintained
+            NavigationManager.NavigateTo("/admin");
         }
         catch (Exception ex)
         {

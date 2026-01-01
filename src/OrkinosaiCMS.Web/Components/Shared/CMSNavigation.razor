@@ -183,7 +183,7 @@
 
     private void HandleAdminClick()
     {
-        // Use forceLoad to ensure authentication state is properly reloaded
-        NavigationManager.NavigateTo("/admin", forceLoad: true);
+        // Navigate to admin panel without force reload - auth state persists
+        NavigationManager.NavigateTo("/admin");
     }
 }
