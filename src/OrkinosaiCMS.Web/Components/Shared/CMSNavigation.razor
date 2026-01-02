@@ -31,8 +31,8 @@
                 <a class="nav-link nav-logout" href="#" @onclick="HandleLogout" @onclick:preventDefault>Logout</a>
             </Authorized>
             <NotAuthorized>
-                <a class="nav-link nav-oqtane-login" href="/oqtane-login">
-                    <span class="oqtane-icon">🚀</span> Oqtane Login
+                <a class="nav-link nav-login" href="/oqtane-login">
+                    <span class="login-icon">🔐</span> Login
                 </a>
             </NotAuthorized>
         </AuthorizeView>
@@ -89,21 +89,21 @@
         color: #0078D4;
     }
 
-    .nav-oqtane-login {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .nav-login {
+        background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
         color: white;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
     }
 
-    .nav-oqtane-login:hover {
-        background: linear-gradient(135deg, #5568d3 0%, #653991 100%);
+    .nav-login:hover {
+        background: linear-gradient(135deg, #005a9e 0%, #0096c7 100%);
         color: white;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
     }
 
-    .oqtane-icon {
+    .login-icon {
         font-size: 16px;
     }
 

@@ -5,7 +5,7 @@
 
 <div class="redirect-container">
     <div class="redirect-message">
-        <p>Redirecting to Oqtane Login...</p>
+        <p>Redirecting to Login...</p>
     </div>
 </div>
 
@@ -28,7 +28,7 @@
 @code {
     protected override void OnInitialized()
     {
-        // Redirect to Oqtane login
+        // Redirect to login
         NavigationManager.NavigateTo("/oqtane-login", forceLoad: true);
     }
 }
