@@ -311,14 +311,14 @@ Potential improvements for this module:
 
 ### Navigation link not appearing
 
-**Cause**: Already authenticated with main system
+**Cause**: Already authenticated
 
-**Solution**: The Oqtane login link only appears when you're NOT authenticated with the main system. Log out from main system to see the link.
+**Solution**: The login link only appears when you're not authenticated. Log out to see the login link.
 
 ## Contributing
 
-When extending this module:
-1. Keep it isolated from main authentication
+When extending this authentication system:
+1. Ensure authentication remains integrated with the main system
 2. Maintain clear attribution to Oqtane
 3. Follow existing code patterns and styling
 4. Update this documentation with changes
