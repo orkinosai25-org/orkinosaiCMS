@@ -298,6 +298,6 @@ else
     private async Task HandleLogout()
     {
         await AuthService.LogoutAsync();
-        NavigationManager.NavigateTo("/admin/login", true);
+        NavigationManager.NavigateTo("/oqtane-login", forceLoad: true);
     }
 }
