@@ -267,27 +267,27 @@ else
                 if (!isAdmin)
                 {
                     Logger.LogWarning("AdminLayout: User {Username} is not an administrator. Redirecting to login.", username);
-                    NavigationManager.NavigateTo("/admin/login");
+                    NavigationManager.NavigateTo("/oqtane-login");
                 }
             }
             else
             {
                 Logger.LogWarning("AdminLayout: User is not authenticated. Redirecting to login.");
                 isAuthenticated = false;
-                NavigationManager.NavigateTo("/admin/login");
+                NavigationManager.NavigateTo("/oqtane-login");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error checking authentication state in AdminLayout");
             isAuthenticated = false;
-            NavigationManager.NavigateTo("/admin/login");
+            NavigationManager.NavigateTo("/oqtane-login");
         }
     }
 
     private async Task HandleLogout()
     {
         await AuthService.LogoutAsync();
-        NavigationManager.NavigateTo("/admin/login", true);
+        NavigationManager.NavigateTo("/oqtane-login", true);
     }
 }
