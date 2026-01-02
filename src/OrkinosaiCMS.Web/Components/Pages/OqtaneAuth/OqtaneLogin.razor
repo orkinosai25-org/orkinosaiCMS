@@ -406,13 +406,14 @@
                 if (isAdmin)
                 {
                     Logger.LogInformation("Redirecting admin user {Username} directly to admin panel", loginModel.Username);
-                    // Force page reload to ensure auth state is fully loaded
-                    NavigationManager.NavigateTo("/admin", forceLoad: true);
+                    // Navigate without force reload to maintain authentication state in memory
+                    NavigationManager.NavigateTo("/admin", forceLoad: false);
                 }
                 else
                 {
                     Logger.LogInformation("Redirecting regular user {Username} to Hello World page", loginModel.Username);
-                    NavigationManager.NavigateTo("/oqtane-hello", forceLoad: true);
+                    // Navigate without force reload to maintain authentication state in memory
+                    NavigationManager.NavigateTo("/oqtane-hello", forceLoad: false);
                 }
             }
             else
