@@ -78,13 +78,9 @@
     }
     else
     {
-        @* Only redirect after we've checked auth after render (when session storage is available) *@
-        @if (hasCheckedAfterRender)
-        {
-            NavigationManager.NavigateTo("/admin/login");
-        }
+        @* Redirect to login if not authenticated *@
         <div style="padding: 20px; text-align: center;">
-            <p>@(hasCheckedAfterRender ? "Redirecting to login..." : "Checking authentication...")</p>
+            <p>Redirecting to login...</p>
         </div>
     }
 }
@@ -241,23 +237,10 @@ else
 @code {
     private bool? isAuthenticated = null;
     private string username = "Admin";
-    private bool hasCheckedAfterRender = false;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckAuthenticationAsync();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        // After the first render (when JS interop is available), re-check authentication
-        // This ensures session storage is accessible after a full page reload
-        if (firstRender && !hasCheckedAfterRender)
-        {
-            hasCheckedAfterRender = true;
-            await CheckAuthenticationAsync();
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     private async Task CheckAuthenticationAsync()
@@ -284,18 +267,21 @@ else
                 if (!isAdmin)
                 {
                     Logger.LogWarning("AdminLayout: User {Username} is not an administrator. Redirecting to login.", username);
+                    NavigationManager.NavigateTo("/admin/login");
                 }
             }
             else
             {
                 Logger.LogWarning("AdminLayout: User is not authenticated. Redirecting to login.");
                 isAuthenticated = false;
+                NavigationManager.NavigateTo("/admin/login");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error checking authentication state in AdminLayout");
             isAuthenticated = false;
+            NavigationManager.NavigateTo("/admin/login");
         }
     }
 
