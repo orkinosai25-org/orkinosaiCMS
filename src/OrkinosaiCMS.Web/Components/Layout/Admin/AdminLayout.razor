@@ -78,9 +78,13 @@
     }
     else
     {
-        NavigationManager.NavigateTo("/admin/login");
+        @* Only redirect after we've checked auth after render (when session storage is available) *@
+        @if (hasCheckedAfterRender)
+        {
+            NavigationManager.NavigateTo("/admin/login");
+        }
         <div style="padding: 20px; text-align: center;">
-            <p>Redirecting to login...</p>
+            <p>@(hasCheckedAfterRender ? "Redirecting to login..." : "Checking authentication...")</p>
         </div>
     }
 }
