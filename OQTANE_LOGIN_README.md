@@ -86,18 +86,23 @@ This is a demo implementation. In a production scenario, credentials would be va
 ### After Successful Login
 
 Upon successful authentication:
-1. A success message appears briefly
-2. You're automatically redirected to `/oqtane-hello`
-3. The Hello World page displays:
-   - Animated success checkmark
-   - Welcome message with "Hello World!"
-   - User session details (username, email, user ID, login time)
-   - System information about the authentication mechanism
-   - Attribution to Oqtane CMS
+- **Admin Users** (username contains "admin"): Redirected directly to `/admin` - the admin dashboard
+  - No intermediate "Hello World" page
+  - Immediate access to admin panel features
+  - Single sign-in experience
+- **Regular Users**: Redirected to `/oqtane-hello` - the Hello World page
+  - Animated success checkmark
+  - Welcome message with "Hello World!"
+  - User session details (username, email, user ID, login time)
+  - System information about the authentication mechanism
+  - Attribution to Oqtane CMS
 
 ### Logout
 
-On the Hello World page, click the "Logout" button to:
+- **Admin Users**: Use the "Logout" button in the admin sidebar to log out
+- **Regular Users**: On the Hello World page, click the "Logout" button
+
+Both logout options will:
 - Clear your Oqtane session
 - Return to the Oqtane login page
 
@@ -221,17 +226,28 @@ For production use, you should:
 
 ### Manual Testing
 
-1. **Test Login Flow**:
+1. **Test Admin Login Flow**:
    ```
    1. Visit /oqtane-login
-   2. Enter username: testuser
+   2. Enter username: admin (or any username containing "admin")
+   3. Enter password: oqtane123
+   4. Click "Sign In with Oqtane"
+   5. Verify redirect directly to /admin (Admin Dashboard)
+   6. Verify no intermediate "Hello World" page
+   7. Verify admin panel is accessible
+   ```
+
+2. **Test Regular User Login Flow**:
+   ```
+   1. Visit /oqtane-login
+   2. Enter username: testuser (any username without "admin")
    3. Enter password: oqtane123
    4. Click "Sign In with Oqtane"
    5. Verify redirect to /oqtane-hello
    6. Verify "Hello World!" message displays
    ```
 
-2. **Test Authentication Required**:
+3. **Test Authentication Required**:
    ```
    1. Visit /oqtane-hello directly (without logging in)
    2. Verify "Authentication Required" message shows
@@ -239,16 +255,16 @@ For production use, you should:
    4. Verify redirect to /oqtane-login
    ```
 
-3. **Test Logout**:
+4. **Test Admin Logout**:
    ```
-   1. Log in to Oqtane
-   2. On Hello World page, click "Logout"
+   1. Log in as admin
+   2. In admin panel sidebar, click "Logout"
    3. Verify redirect to /oqtane-login
-   4. Try visiting /oqtane-hello again
-   5. Verify "Authentication Required" message shows
+   4. Try visiting /admin again
+   5. Verify redirect to /oqtane-login (auth required)
    ```
 
-4. **Test Navigation Link**:
+5. **Test Navigation Link**:
    ```
    1. Visit home page
    2. Verify "🚀 Oqtane Login" link appears in navigation (when not logged in)
