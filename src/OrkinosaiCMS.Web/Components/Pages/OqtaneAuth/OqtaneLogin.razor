@@ -403,13 +403,13 @@
                 {
                     Logger.LogInformation("Redirecting admin user {Username} directly to admin panel", loginModel.Username);
                     // Navigate without force reload to maintain authentication state in memory
-                    NavigationManager.NavigateTo("/admin", forceLoad: false);
+                    NavigationManager.NavigateTo("/admin");
                 }
                 else
                 {
                     Logger.LogInformation("Redirecting regular user {Username} to Hello World page", loginModel.Username);
                     // Navigate without force reload to maintain authentication state in memory
-                    NavigationManager.NavigateTo("/oqtane-hello", forceLoad: false);
+                    NavigationManager.NavigateTo("/oqtane-hello");
                 }
             }
             else
