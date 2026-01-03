@@ -72,7 +72,9 @@ Navigate to `https://localhost:5001/oqtane-login` and sign in with:
 - **Username:** `admin` (or any username containing "admin")
 - **Password:** `oqtane123`
 
-> **Note**: The system now uses Oqtane-based authentication exclusively. Visiting `/admin/login` or `/login` will automatically redirect to `/oqtane-login`.
+You will be immediately redirected to the admin panel at `/admin` with full access to CMS management features.
+
+> **Note**: The system now uses Oqtane-based authentication exclusively. Visiting `/admin/login` or `/login` will automatically redirect to `/oqtane-login`. After successful login, admin users are taken directly to the admin panel with no intermediate pages.
 
 Visit `/cms-home` to see the demo website!
 
