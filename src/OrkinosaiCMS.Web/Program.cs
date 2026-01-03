@@ -18,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Add HttpClient for services that need it (e.g., ChatAgent)
+builder.Services.AddHttpClient();
+
 // Add Controllers for API endpoints
 builder.Services.AddControllers();
 
