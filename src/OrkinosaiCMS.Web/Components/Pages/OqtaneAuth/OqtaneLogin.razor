@@ -399,21 +399,11 @@
             {
                 Logger.LogInformation("Oqtane login successful for user: {Username}", loginModel.Username);
                 
-                // Check if user is an admin - if so, redirect directly to admin panel
-                // Otherwise, redirect to Hello World page
-                var isAdmin = loginModel.Username.Contains("admin", StringComparison.OrdinalIgnoreCase);
-                
-                if (isAdmin)
-                {
-                    Logger.LogInformation("Redirecting admin user {Username} directly to admin panel", loginModel.Username);
-                    // Navigate without force reload - auth state is already updated
-                    NavigationManager.NavigateTo("/admin");
-                }
-                else
-                {
-                    Logger.LogInformation("Redirecting regular user {Username} to Hello World page", loginModel.Username);
-                    NavigationManager.NavigateTo("/oqtane-hello");
-                }
+                // Redirect all users (both admin and regular) to Hello World page
+                // This provides a consistent "welcome" experience after login
+                // Admin users will see an "Admin Panel" button on the Hello World page
+                Logger.LogInformation("Redirecting user {Username} to Hello World page", loginModel.Username);
+                NavigationManager.NavigateTo("/oqtane-hello");
             }
             else
             {
