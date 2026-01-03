@@ -129,7 +129,7 @@ orkinosaiCMS/
 │   └── Modules/
 │       └── OrkinosaiCMS.Modules.Content/  # Sample content module
 ├── docs/                                # Documentation
-└── tests/                               # Unit and integration tests (coming soon)
+└── tests/                               # Unit and integration tests
 ```
 
 ## 🎨 Creating a Module
@@ -261,7 +261,7 @@ Contributions are welcome! Please read our contributing guidelines (coming soon)
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests (when test infrastructure is available)
+4. Add tests
 5. Submit a pull request
 
 ## 📝 License
@@ -293,6 +293,54 @@ If a GitHub Copilot agent workflow fails:
 
 #### Database Connection Issues
 See [Database Guide](docs/DATABASE.md) and [Setup Guide](docs/SETUP.md) for configuration help.
+
+## 🧪 Testing
+
+OrkinosaiCMS includes comprehensive unit and integration tests to ensure reliability of core authentication features.
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test OrkinosaiCMS.sln
+
+# Run tests with detailed output
+dotnet test OrkinosaiCMS.sln --verbosity normal
+
+# Run tests with code coverage
+dotnet test OrkinosaiCMS.sln --collect:"XPlat Code Coverage"
+```
+
+### Test Coverage
+
+#### Authentication Tests
+- **OqtaneAuthServiceTests**: Unit tests for Oqtane demo authentication
+  - ✅ Validates credentials and role assignment
+  - ✅ Tests admin role detection (username contains "admin")
+  - ✅ Tests user role assignment for non-admin users
+  - ✅ Validates password requirements
+
+- **AuthenticationIntegrationTests**: Integration tests for authentication flows
+  - ✅ JWT token generation and validation
+  - ✅ Token persistence across multiple validations (Issue #56)
+  - ✅ Administrator role persistence in tokens
+  - ✅ Failsafe mode JWT claims
+  - ✅ Token expiration handling
+  - ✅ Role detection (case-insensitive)
+
+#### Issue #56: Login Redirect Bug
+Tests specifically address the bug where successfully logged-in admins were shown the sign-in page again:
+- ✅ JWT tokens remain valid across repeated state checks
+- ✅ Administrator role persists through navigation
+- ✅ Token validation doesn't fail on repeated checks
+
+### CI/CD Integration
+
+Tests are automatically run in GitHub Actions CI/CD pipeline:
+- Triggered on pushes to `main`, `develop`, and `copilot/*` branches
+- Triggered on pull requests to `main` and `develop`
+- Results are uploaded as artifacts for review
+- Code coverage reports are collected
 
 ## 📞 Support
 
