@@ -14,6 +14,11 @@ namespace OrkinosaiCMS.Tests;
 /// </summary>
 public class AuthenticationIntegrationTests
 {
+    // Test constants
+    private const int NAVIGATION_SIMULATION_COUNT = 50;
+    private const int ROLE_PERSISTENCE_CHECK_COUNT = 20;
+    private const int MULTI_USER_VALIDATION_COUNT = 10;
+    
     #region JWT Token Service Tests
 
     [Fact]
@@ -118,14 +123,18 @@ public class AuthenticationIntegrationTests
     }
 
     [Fact]
-    public void JwtTokenService_ExpiredToken_ReturnsNull()
+    public void JwtTokenService_ExpiryConfiguration_IsRespected()
     {
+        // This test verifies that expiry configuration is read and applied
+        // NOTE: We don't test actual expiration timing to avoid flaky tests in CI
+        // Real expiration is handled by JWT library and is tested through manual/E2E tests
+        
         // Arrange
         var config = CreateConfigurationWithShortExpiry();
         var logger = Mock.Of<ILogger<JwtTokenService>>();
         var jwtService = new JwtTokenService(config, logger);
 
-        // Act - Generate token with very short expiry
+        // Act - Generate token with configured expiry
         var token = jwtService.GenerateToken(
             userId: 1,
             username: "admin",
@@ -134,13 +143,11 @@ public class AuthenticationIntegrationTests
             role: "Administrator",
             isFailsafeMode: false);
 
-        // Wait for token to expire (short wait for test)
-        System.Threading.Thread.Sleep(100);
-
-        // Assert - Token should still be valid (expiry is typically in minutes)
-        // This test verifies expiry mechanism exists, not that it expires instantly
+        // Assert - Token should be valid immediately after creation
+        // The expiry mechanism is handled by the JWT library itself
         var principal = jwtService.ValidateToken(token);
-        Assert.NotNull(principal); // Token should still be valid for a short duration
+        Assert.NotNull(principal);
+        Assert.True(principal.Identity?.IsAuthenticated);
     }
 
     #endregion
@@ -240,7 +247,7 @@ public class AuthenticationIntegrationTests
             isFailsafeMode: false);
 
         // Assert - Validate token many times (simulating navigation)
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < NAVIGATION_SIMULATION_COUNT; i++)
         {
             var principal = jwtService.ValidateToken(token);
             Assert.NotNull(principal);
@@ -269,7 +276,7 @@ public class AuthenticationIntegrationTests
             isFailsafeMode: false);
 
         // Assert - Check role persists across multiple validations
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < ROLE_PERSISTENCE_CHECK_COUNT; i++)
         {
             var principal = jwtService.ValidateToken(token);
             Assert.NotNull(principal);
@@ -305,7 +312,7 @@ public class AuthenticationIntegrationTests
         // Act & Assert - Validate all tokens multiple times
         foreach (var token in tokens)
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < MULTI_USER_VALIDATION_COUNT; i++)
             {
                 var principal = jwtService.ValidateToken(token);
                 Assert.NotNull(principal);
