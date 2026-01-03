@@ -28,23 +28,38 @@ public static class SeedData
 
         try
         {
-            // Try to apply migrations first (for databases with migration history)
-            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            var hasAppliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).Any();
+            // Check if we're using SQLite
+            var isSqlite = context.Database.IsSqlite();
             
-            if (hasAppliedMigrations || pendingMigrations.Any())
+            if (isSqlite)
             {
-                // Database has migration history or pending migrations - use MigrateAsync
-                logger.LogInformation("Applying database migrations...");
-                await context.Database.MigrateAsync();
-                logger.LogInformation("Database migrations applied successfully");
+                // For SQLite, delete and recreate the database as the migrations were created for SQL Server
+                // and contain SQL Server-specific syntax that's incompatible with SQLite
+                logger.LogInformation("SQLite detected. Ensuring fresh database...");
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
+                logger.LogInformation("Database schema created successfully");
             }
             else
             {
-                // Fresh database without migration history - use EnsureCreatedAsync
-                logger.LogInformation("Creating database schema...");
-                await context.Database.EnsureCreatedAsync();
-                logger.LogInformation("Database schema created successfully");
+                // For SQL Server, use migrations
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                var hasAppliedMigrations = (await context.Database.GetAppliedMigrationsAsync()).Any();
+                
+                if (hasAppliedMigrations || pendingMigrations.Any())
+                {
+                    // Database has migration history or pending migrations - use MigrateAsync
+                    logger.LogInformation("Applying database migrations...");
+                    await context.Database.MigrateAsync();
+                    logger.LogInformation("Database migrations applied successfully");
+                }
+                else
+                {
+                    // Fresh database without migration history - use EnsureCreatedAsync
+                    logger.LogInformation("Creating database schema...");
+                    await context.Database.EnsureCreatedAsync();
+                    logger.LogInformation("Database schema created successfully");
+                }
             }
 
             // Check if data already exists

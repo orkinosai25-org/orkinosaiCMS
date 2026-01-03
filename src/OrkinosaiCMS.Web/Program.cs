@@ -117,14 +117,21 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
+        logger.LogInformation("Starting database initialization...");
         await SeedData.InitializeAsync(services);
+        logger.LogInformation("Database initialization completed successfully.");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred seeding the database.");
+        logger.LogCritical(ex, "CRITICAL ERROR: Database initialization failed. The application cannot start without a properly initialized database.");
+        logger.LogError("Please check your database configuration in appsettings.json and ensure the database is accessible.");
+        logger.LogError("The application will now exit. Fix the database issues and restart the application.");
+        
+        // Exit the application instead of continuing with a broken database
+        throw new InvalidOperationException("Database initialization failed. The application cannot continue. See logs for details.", ex);
     }
 }
 
