@@ -528,8 +528,8 @@
         try
         {
             Logger.LogDebug("Admin panel navigation for user ID: {UserId}", currentUser?.UserId ?? 0);
-            // Navigate to admin panel - auth state is maintained
-            NavigationManager.NavigateTo("/admin");
+            // Navigate to admin panel with force load to create fresh circuit
+            NavigationManager.NavigateTo("/admin", forceLoad: true);
         }
         catch (Exception ex)
         {

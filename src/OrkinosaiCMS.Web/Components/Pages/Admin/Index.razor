@@ -1,5 +1,6 @@
 @page "/admin"
-@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Web
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using OrkinosaiCMS.Web.Services
