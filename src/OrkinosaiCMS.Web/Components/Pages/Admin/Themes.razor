@@ -488,7 +488,8 @@
 
     private void EditTheme(Theme theme)
     {
-        NavigationManager.NavigateTo($"/admin/themes/edit/{theme.Id}");
+        // TODO: Implement theme editing UI
+        Console.WriteLine($"Edit theme: {theme.Name} - Feature not yet implemented");
     }
 
     private async Task CloneTheme(Theme theme)
@@ -507,6 +508,7 @@
 
     private void ShowCreateTheme()
     {
-        NavigationManager.NavigateTo("/admin/themes/create");
+        // TODO: Implement theme creation UI
+        Console.WriteLine("Create custom theme - Feature not yet implemented");
     }
 }
