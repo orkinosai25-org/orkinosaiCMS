@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using OrkinosaiCMS.Web.Services
 @inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
 
 <PageTitle>Admin Dashboard - OrkinosaiCMS</PageTitle>
 
@@ -65,19 +66,19 @@
     <div class="quick-actions">
         <h2>Quick Actions</h2>
         <div class="action-buttons">
-            <button class="action-btn" @onclick='() => ShowMessage("Create Page functionality")'>
+            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/pages")'>
                 <span class="action-icon">➕</span>
                 Create New Page
             </button>
-            <button class="action-btn" @onclick='() => ShowMessage("Manage Content functionality")'>
+            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/content")'>
                 <span class="action-icon">📝</span>
                 Manage Content
             </button>
-            <button class="action-btn" @onclick='() => ShowMessage("Upload Media functionality")'>
+            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/media")'>
                 <span class="action-icon">🖼️</span>
                 Upload Media
             </button>
-            <button class="action-btn" @onclick='() => ShowMessage("User Management functionality")'>
+            <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/users")'>
                 <span class="action-icon">👥</span>
                 Manage Users
             </button>
@@ -255,9 +256,4 @@
 </style>
 
 @code {
-    private void ShowMessage(string message)
-    {
-        // This would integrate with actual functionality
-        Console.WriteLine($"Action: {message}");
-    }
 }
