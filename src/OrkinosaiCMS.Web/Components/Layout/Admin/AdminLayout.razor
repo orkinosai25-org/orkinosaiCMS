@@ -265,7 +265,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error retrieving user details");
+            Logger.LogWarning(ex, "Error retrieving user details - using default username");
+            // Keep default username "Admin" when auth details cannot be retrieved
         }
     }
 
