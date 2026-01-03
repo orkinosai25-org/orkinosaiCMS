@@ -8,8 +8,15 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<AdminLayout> Logger
 
+@* TODO: REMOVE THIS DEVELOPMENT BYPASS BEFORE PRODUCTION! *@
+@* FIXME: Authentication has been temporarily disabled for development convenience *@
+@* SECURITY WARNING: This allows unrestricted access to the admin panel! *@
+@* Restore authentication by uncommenting <AuthorizeView> wrapper below *@
+
+@* COMMENTED OUT FOR DEVELOPMENT - RESTORE BEFORE PRODUCTION! 
 <AuthorizeView Roles="Administrator">
     <Authorized>
+*@
         @* Display failsafe warning banner if active *@
         <FailsafeWarningBanner />
     
@@ -18,6 +25,7 @@
                 <div class="admin-logo">
                     <h2>OrkinosaiCMS</h2>
                     <p>Admin Panel</p>
+                    <p style="color: #ff6b6b; font-size: 12px; margin-top: 8px;">⚠️ DEV MODE: Auth Bypassed</p>
                 </div>
                 <nav class="admin-nav">
                     <NavLink href="/admin" Match="NavLinkMatch.All" class="nav-item">
@@ -58,7 +66,7 @@
                         <span class="user-icon">👤</span>
                         <div>
                             <p class="user-name">@username</p>
-                            <p class="user-role">Administrator</p>
+                            <p class="user-role">Administrator (Dev Mode)</p>
                         </div>
                     </div>
                     <button class="btn-logout" @onclick="HandleLogout">
@@ -74,6 +82,7 @@
         @* Zoota Chat Agent - Admin Only *@
         <ChatAgent />
     </div>
+@* COMMENTED OUT FOR DEVELOPMENT - RESTORE BEFORE PRODUCTION!
     </Authorized>
     <NotAuthorized>
         <div style="padding: 20px; text-align: center;">
@@ -87,6 +96,7 @@
         }
     </NotAuthorized>
 </AuthorizeView>
+*@
 
 <style>
     .admin-layout {

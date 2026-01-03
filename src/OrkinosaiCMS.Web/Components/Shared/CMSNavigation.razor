@@ -18,6 +18,16 @@
     }
     
     <div class="nav-actions">
+        @* TODO: REMOVE THIS DEVELOPMENT BYPASS BEFORE PRODUCTION! *@
+        @* FIXME: Admin button is always visible for development convenience *@
+        @* SECURITY WARNING: Restore AuthorizeView checks before production! *@
+        
+        @* ALWAYS SHOW ADMIN BUTTON FOR DEVELOPMENT *@
+        <a class="nav-link nav-admin" href="#" @onclick="HandleAdminClick" @onclick:preventDefault>
+            <span class="admin-icon">⚙️</span> Admin Panel (Dev Mode)
+        </a>
+        
+        @* COMMENTED OUT FOR DEVELOPMENT - RESTORE BEFORE PRODUCTION!
         <AuthorizeView>
             <Authorized>
                 <span class="nav-welcome">Welcome, @context.User.Identity?.Name</span>
@@ -36,6 +46,7 @@
                 </a>
             </NotAuthorized>
         </AuthorizeView>
+        *@
     </div>
 </div>
 
