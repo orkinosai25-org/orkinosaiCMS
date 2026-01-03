@@ -4,13 +4,10 @@
 @using OrkinosaiCMS.Web.Components.Shared
 @inject IAuthenticationService AuthService
 @inject NavigationManager NavigationManager
-@inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<AdminLayout> Logger
 
-@if (isAuthenticated.HasValue)
-{
-    @if (isAuthenticated.Value)
-    {
+<AuthorizeView Roles="Administrator">
+    <Authorized>
         @* Display failsafe warning banner if active *@
         <FailsafeWarningBanner />
         
@@ -75,21 +72,12 @@
             @* Zoota Chat Agent - Admin Only *@
             <ChatAgent />
         </div>
-    }
-    else
-    {
-        @* Redirect to login if not authenticated *@
-        <div style="padding: 20px; text-align: center;">
-            <p>Redirecting to login...</p>
-        </div>
-    }
-}
-else
-{
-    <div style="padding: 20px; text-align: center;">
-        <p>Loading...</p>
-    </div>
-}
+    </Authorized>
+    <NotAuthorized>
+        @* Redirect to login if not authenticated or not an administrator *@
+        <RedirectToOqtaneLogin />
+    </NotAuthorized>
+</AuthorizeView>
 
 <style>
     .admin-layout {
@@ -235,53 +223,26 @@ else
 </style>
 
 @code {
-    private bool? isAuthenticated = null;
     private string username = "Admin";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await CheckAuthenticationAsync();
-    }
-
-    private async Task CheckAuthenticationAsync()
-    {
-        try
+        if (firstRender)
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            Logger.LogInformation("AdminLayout: Checking authentication. IsAuthenticated: {IsAuth}, User: {User}", 
-                user.Identity?.IsAuthenticated, user.Identity?.Name);
-
-            if (user.Identity?.IsAuthenticated ?? false)
+            try
             {
-                // Get username from claims first
-                username = user.Identity.Name ?? "Admin";
-                
-                // Check if user is an Administrator
-                var isAdmin = user.IsInRole("Administrator");
-                Logger.LogInformation("AdminLayout: User {Username} is authenticated. IsAdmin: {IsAdmin}", username, isAdmin);
-                
-                isAuthenticated = isAdmin;
-                
-                if (!isAdmin)
+                // Get the current username for display
+                var authState = await AuthService.GetCurrentUserAsync();
+                if (authState != null)
                 {
-                    Logger.LogWarning("AdminLayout: User {Username} is not an administrator. Redirecting to login.", username);
-                    NavigationManager.NavigateTo("/oqtane-login");
+                    username = authState.Username;
+                    StateHasChanged();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Logger.LogWarning("AdminLayout: User is not authenticated. Redirecting to login.");
-                isAuthenticated = false;
-                NavigationManager.NavigateTo("/oqtane-login");
+                Logger.LogError(ex, "Error getting current user in AdminLayout");
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error checking authentication state in AdminLayout");
-            isAuthenticated = false;
-            NavigationManager.NavigateTo("/oqtane-login");
         }
     }
 

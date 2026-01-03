@@ -1,0 +1,13 @@
+@inject NavigationManager NavigationManager
+@inject ILogger<RedirectToOqtaneLogin> Logger
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Logger.LogWarning("User is not authorized. Redirecting to Oqtane login.");
+            NavigationManager.NavigateTo("/oqtane-login");
+        }
+    }
+}
