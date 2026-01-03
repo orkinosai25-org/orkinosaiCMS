@@ -126,9 +126,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogCritical(ex, "CRITICAL ERROR: Database initialization failed. The application cannot start without a properly initialized database.");
-        logger.LogError("Please check your database configuration in appsettings.json and ensure the database is accessible.");
-        logger.LogError("The application will now exit. Fix the database issues and restart the application.");
+        logger.LogCritical(ex, "CRITICAL ERROR: Database initialization failed. The application cannot start without a properly initialized database. Please check your database configuration in appsettings.json and ensure the database is accessible. The application will now exit.");
         
         // Exit the application instead of continuing with a broken database
         throw new InvalidOperationException("Database initialization failed. The application cannot continue. See logs for details.", ex);

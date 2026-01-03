@@ -35,10 +35,32 @@ public static class SeedData
             {
                 // For SQLite, delete and recreate the database as the migrations were created for SQL Server
                 // and contain SQL Server-specific syntax that's incompatible with SQLite
-                logger.LogInformation("SQLite detected. Ensuring fresh database...");
-                await context.Database.EnsureDeletedAsync();
-                await context.Database.EnsureCreatedAsync();
-                logger.LogInformation("Database schema created successfully");
+                // SAFETY: Only delete database in Development environment to prevent data loss in production
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                var isDevelopment = environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+                
+                if (isDevelopment)
+                {
+                    logger.LogInformation("SQLite detected in Development environment. Ensuring fresh database...");
+                    await context.Database.EnsureDeletedAsync();
+                    await context.Database.EnsureCreatedAsync();
+                    logger.LogInformation("Database schema created successfully");
+                }
+                else
+                {
+                    // In production/staging, check if database exists and only create if it doesn't
+                    logger.LogInformation("SQLite detected in {Environment} environment. Creating database schema if not exists...", environment);
+                    var canConnect = await context.Database.CanConnectAsync();
+                    if (!canConnect)
+                    {
+                        await context.Database.EnsureCreatedAsync();
+                        logger.LogInformation("Database schema created successfully");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Database already exists. Skipping creation.");
+                    }
+                }
             }
             else
             {
