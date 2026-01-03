@@ -50,15 +50,20 @@ public static class SeedData
                 {
                     // In production/staging, check if database exists and only create if it doesn't
                     logger.LogInformation("SQLite detected in {Environment} environment. Creating database schema if not exists...", environment);
-                    var canConnect = await context.Database.CanConnectAsync();
-                    if (!canConnect)
+                    
+                    // Check if tables exist by attempting to query a core table
+                    try
                     {
+                        // Try to query the Sites table - if it exists, database is already initialized
+                        await context.Sites.AnyAsync();
+                        logger.LogInformation("Database already exists with valid schema. Skipping creation.");
+                    }
+                    catch (Microsoft.Data.Sqlite.SqliteException)
+                    {
+                        // Table doesn't exist, create the database
+                        logger.LogInformation("Database does not exist or is incomplete. Creating schema...");
                         await context.Database.EnsureCreatedAsync();
                         logger.LogInformation("Database schema created successfully");
-                    }
-                    else
-                    {
-                        logger.LogInformation("Database already exists. Skipping creation.");
                     }
                 }
             }
