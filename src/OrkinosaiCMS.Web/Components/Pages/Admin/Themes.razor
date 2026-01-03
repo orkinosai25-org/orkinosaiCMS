@@ -4,8 +4,10 @@
 @using Microsoft.AspNetCore.Authorization
 @using OrkinosaiCMS.Core.Entities.Sites
 @using OrkinosaiCMS.Core.Interfaces.Services
+@using Microsoft.JSInterop
 @inject IThemeService ThemeService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Theme Management - OrkinosaiCMS</PageTitle>
 
@@ -486,10 +488,10 @@
         }
     }
 
-    private void EditTheme(Theme theme)
+    private async Task EditTheme(Theme theme)
     {
         // TODO: Implement theme editing UI
-        Console.WriteLine($"Edit theme: {theme.Name} - Feature not yet implemented");
+        await JSRuntime.InvokeVoidAsync("alert", "Theme editing feature is not yet implemented. This feature will be available in a future update.");
     }
 
     private async Task CloneTheme(Theme theme)
@@ -506,9 +508,9 @@
         }
     }
 
-    private void ShowCreateTheme()
+    private async Task ShowCreateTheme()
     {
         // TODO: Implement theme creation UI
-        Console.WriteLine("Create custom theme - Feature not yet implemented");
+        await JSRuntime.InvokeVoidAsync("alert", "Custom theme creation feature is not yet implemented. This feature will be available in a future update.");
     }
 }
