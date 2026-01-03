@@ -406,13 +406,13 @@
                 {
                     // Redirect admin users directly to the admin panel
                     Logger.LogInformation("Redirecting admin user {Username} to admin panel", loginModel.Username);
-                    NavigationManager.NavigateTo("/admin", forceLoad: true);
+                    NavigationManager.NavigateTo("/admin");
                 }
                 else
                 {
                     // Redirect regular users to home page
                     Logger.LogInformation("Redirecting regular user {Username} to home page", loginModel.Username);
-                    NavigationManager.NavigateTo("/cms-home", forceLoad: true);
+                    NavigationManager.NavigateTo("/cms-home");
                 }
             }
             else

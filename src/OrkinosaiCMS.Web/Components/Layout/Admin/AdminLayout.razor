@@ -3,6 +3,7 @@
 @using OrkinosaiCMS.Web.Services
 @using OrkinosaiCMS.Web.Components.Shared
 @inject IAuthenticationService AuthService
+@inject IOqtaneAuthService OqtaneAuthService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<AdminLayout> Logger
@@ -235,13 +236,9 @@ else
     private bool isLoading = true;
     private bool isAuthorized = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            await CheckAuthorizationAsync();
-            StateHasChanged();
-        }
+        await CheckAuthorizationAsync();
     }
 
     private async Task CheckAuthorizationAsync()
@@ -266,11 +263,22 @@ else
                     isAuthorized = true;
                     isLoading = false;
                     
-                    // Get current user for display
-                    var currentUser = await AuthService.GetCurrentUserAsync();
-                    if (currentUser != null)
+                    // Try to get current user from Oqtane service first, then fall back to main service
+                    var oqtaneUser = await OqtaneAuthService.GetCurrentOqtaneUserAsync();
+                    if (oqtaneUser != null)
                     {
-                        username = currentUser.Username;
+                        username = oqtaneUser.Username;
+                        Logger.LogInformation("AdminLayout: Using Oqtane user {Username}", username);
+                    }
+                    else
+                    {
+                        // Fall back to main auth service
+                        var currentUser = await AuthService.GetCurrentUserAsync();
+                        if (currentUser != null)
+                        {
+                            username = currentUser.Username;
+                            Logger.LogInformation("AdminLayout: Using main auth user {Username}", username);
+                        }
                     }
                 }
                 else
