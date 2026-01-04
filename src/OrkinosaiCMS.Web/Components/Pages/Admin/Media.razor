@@ -2,104 +2,550 @@
 @rendermode InteractiveServer
 @layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
 @using Microsoft.AspNetCore.Authorization
+@using OrkinosaiCMS.Core.Entities.Media
+@using OrkinosaiCMS.Core.Interfaces.Services
+@using System.Net.Http.Headers
+@inject IMediaService MediaService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Media - OrkinosaiCMS Admin</PageTitle>
+<PageTitle>Media Library - OrkinosaiCMS Admin</PageTitle>
 
-<div class="admin-page">
+<div class="admin-page media-library">
     <div class="page-header">
-        <h1>Media Library</h1>
-        <p>Manage your images, files, and media assets</p>
+        <div>
+            <h1>Media Library</h1>
+            <p>Manage your images, files, and media assets</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-primary" @onclick="ShowUploadDialog">
+                <span>📤</span> Upload Files
+            </button>
+            <button class="btn-secondary" @onclick="ShowCreateFolderDialog">
+                <span>📁</span> New Folder
+            </button>
+        </div>
     </div>
 
-    <div class="coming-soon-card">
-        <div class="coming-soon-icon">🖼️</div>
-        <h2>Media Library Coming Soon</h2>
-        <p>This feature is currently under development. You will be able to:</p>
-        <ul class="feature-list">
-            <li>✨ Upload images and files</li>
-            <li>📁 Organize media in folders</li>
-            <li>🔍 Search and filter media</li>
-            <li>✂️ Edit and crop images</li>
-            <li>💾 Manage file storage and quotas</li>
-        </ul>
-        <p class="note">In the meantime, you can manage navigation and themes from the sidebar.</p>
-    </div>
+    @if (loading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading media library...</p>
+        </div>
+    }
+    else
+    {
+        <div class="media-toolbar">
+            <div class="search-box">
+                <input type="text" @bind="searchTerm" @bind:event="oninput" @onkeyup="SearchFiles" placeholder="🔍 Search files..." />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <button class="clear-search" @onclick="ClearSearch">✕</button>
+                }
+            </div>
+            <div class="view-options">
+                <button class="view-btn @(viewMode == "grid" ? "active" : "")" @onclick='() => viewMode = "grid"'>⊞ Grid</button>
+                <button class="view-btn @(viewMode == "list" ? "active" : "")" @onclick='() => viewMode = "list"'>☰ List</button>
+            </div>
+            <div class="storage-info">
+                <span>📦 @fileCount files</span>
+                <span>💾 @FormatBytes(totalStorage)</span>
+            </div>
+        </div>
+
+        <div class="media-content">
+            @if (folders.Any())
+            {
+                <div class="folders-section">
+                    <h3>📁 Folders</h3>
+                    <div class="folders-grid">
+                        @foreach (var folder in folders)
+                        {
+                            <div class="folder-card" @onclick="() => OpenFolder(folder.Id)">
+                                <div class="folder-icon">📁</div>
+                                <div class="folder-info">
+                                    <h4>@folder.Name</h4>
+                                    @if (!string.IsNullOrEmpty(folder.Description))
+                                    {
+                                        <p>@folder.Description</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="files-section">
+                <h3>📄 Files</h3>
+                
+                @if (!files.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>No files found</p>
+                        <button class="btn-primary" @onclick="ShowUploadDialog">Upload your first file</button>
+                    </div>
+                }
+                else if (viewMode == "grid")
+                {
+                    <div class="files-grid">
+                        @foreach (var file in files)
+                        {
+                            <div class="file-card">
+                                <div class="file-preview">
+                                    @if (IsImage(file.ContentType))
+                                    {
+                                        <img src="@file.ThumbnailUrl" alt="@file.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="file-icon">@GetFileIcon(file.Extension)</div>
+                                    }
+                                </div>
+                                <div class="file-info">
+                                    <h4 title="@file.Title">@file.Title</h4>
+                                    <p class="file-meta">
+                                        <span>@file.Extension</span>
+                                        <span>@FormatBytes(file.SizeInBytes)</span>
+                                    </p>
+                                </div>
+                                <div class="file-actions">
+                                    <button @onclick="() => ViewFile(file)" title="View">👁️</button>
+                                    <button @onclick="() => ShowEditDialog(file)" title="Edit">✏️</button>
+                                    <button @onclick="() => DeleteFile(file)" title="Delete">🗑️</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (showUploadDialog)
+    {
+        <div class="modal-overlay" @onclick="CloseUploadDialog">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>📤 Upload Files</h2>
+                    <button class="close-btn" @onclick="CloseUploadDialog">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="upload-area">
+                        <InputFile multiple OnChange="HandleFileSelection" class="file-input" />
+                        <div class="upload-prompt">
+                            <div class="upload-icon">📁</div>
+                            <p>Click to select files or drag and drop</p>
+                            <span class="upload-hint">Images, PDFs, and documents supported</span>
+                        </div>
+                    </div>
+                    
+                    @if (selectedFiles.Any())
+                    {
+                        <div class="selected-files">
+                            <h3>Selected Files (@selectedFiles.Count)</h3>
+                            @foreach (var file in selectedFiles)
+                            {
+                                <div class="selected-file-item">
+                                    <span>@file.Name</span>
+                                    <span>@FormatBytes(file.Size)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (uploading)
+                    {
+                        <div class="upload-progress">
+                            <div class="spinner"></div>
+                            <p>Uploading files...</p>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(uploadError))
+                    {
+                        <div class="error-message">⚠️ @uploadError</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseUploadDialog" disabled="@uploading">Cancel</button>
+                    <button class="btn-primary" @onclick="UploadFiles" disabled="@(!selectedFiles.Any() || uploading)">
+                        Upload @selectedFiles.Count file(s)
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showCreateFolderDialog)
+    {
+        <div class="modal-overlay" @onclick="CloseCreateFolderDialog">
+            <div class="modal-content small" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>📁 Create New Folder</h2>
+                    <button class="close-btn" @onclick="CloseCreateFolderDialog">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Folder Name</label>
+                        <input type="text" @bind="newFolderName" placeholder="Enter folder name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description (Optional)</label>
+                        <textarea @bind="newFolderDescription" placeholder="Enter folder description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseCreateFolderDialog">Cancel</button>
+                    <button class="btn-primary" @onclick="CreateFolder" disabled="@string.IsNullOrWhiteSpace(newFolderName)">
+                        Create Folder
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showEditDialog && editingFile != null)
+    {
+        <div class="modal-overlay" @onclick="CloseEditDialog">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>✏️ Edit File Details</h2>
+                    <button class="close-btn" @onclick="CloseEditDialog">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" @bind="editingFile.Title" placeholder="Enter file title" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea @bind="editingFile.Description" placeholder="Enter file description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Tags (comma separated)</label>
+                        <input type="text" @bind="editingFile.Tags" placeholder="e.g. product, marketing, 2024" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseEditDialog">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveFileEdits">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
+@code {
+    private bool loading = true;
+    private List<MediaFolder> folders = new();
+    private List<MediaFile> files = new();
+    private int? currentFolderId = null;
+    private string searchTerm = "";
+    private string viewMode = "grid";
+    private long totalStorage = 0;
+    private int fileCount = 0;
+    private bool showUploadDialog = false;
+    private bool uploading = false;
+    private string uploadError = "";
+    private List<IBrowserFile> selectedFiles = new();
+    private bool showCreateFolderDialog = false;
+    private string newFolderName = "";
+    private string newFolderDescription = "";
+    private bool showEditDialog = false;
+    private MediaFile? editingFile = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMediaLibrary();
+    }
+
+    private async Task LoadMediaLibrary()
+    {
+        loading = true;
+        try
+        {
+            folders = (await MediaService.GetRootFoldersAsync()).ToList();
+            files = (await MediaService.GetFilesByFolderAsync(currentFolderId)).ToList();
+            totalStorage = await MediaService.GetTotalStorageUsedAsync();
+            fileCount = await MediaService.GetFileCountAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error loading media library: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SearchFiles()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await LoadMediaLibrary();
+        }
+        else
+        {
+            files = (await MediaService.SearchFilesAsync(searchTerm)).ToList();
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchTerm = "";
+        await LoadMediaLibrary();
+    }
+
+    private void ShowUploadDialog()
+    {
+        showUploadDialog = true;
+        selectedFiles.Clear();
+        uploadError = "";
+    }
+
+    private void CloseUploadDialog()
+    {
+        showUploadDialog = false;
+        selectedFiles.Clear();
+        uploadError = "";
+    }
+
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles(10).ToList();
+        uploadError = "";
+    }
+
+    private async Task UploadFiles()
+    {
+        if (!selectedFiles.Any()) return;
+
+        uploading = true;
+        uploadError = "";
+
+        try
+        {
+            foreach (var file in selectedFiles)
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+                await MediaService.UploadFileAsync(stream, file.Name, file.ContentType, file.Size, currentFolderId, file.Name, null, null);
+            }
+
+            await LoadMediaLibrary();
+            CloseUploadDialog();
+        }
+        catch (Exception ex)
+        {
+            uploadError = ex.Message;
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private void ShowCreateFolderDialog()
+    {
+        showCreateFolderDialog = true;
+        newFolderName = "";
+        newFolderDescription = "";
+    }
+
+    private void CloseCreateFolderDialog()
+    {
+        showCreateFolderDialog = false;
+    }
+
+    private async Task CreateFolder()
+    {
+        if (string.IsNullOrWhiteSpace(newFolderName)) return;
+
+        try
+        {
+            await MediaService.CreateFolderAsync(newFolderName, newFolderDescription, currentFolderId);
+            await LoadMediaLibrary();
+            CloseCreateFolderDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error creating folder: {ex.Message}");
+        }
+    }
+
+    private async Task OpenFolder(int folderId)
+    {
+        currentFolderId = folderId;
+        await LoadMediaLibrary();
+    }
+
+    private void ShowEditDialog(MediaFile file)
+    {
+        editingFile = new MediaFile
+        {
+            Id = file.Id,
+            Title = file.Title,
+            Description = file.Description,
+            Tags = file.Tags,
+            FileName = file.FileName,
+            Extension = file.Extension,
+            ContentType = file.ContentType,
+            SizeInBytes = file.SizeInBytes,
+            FilePath = file.FilePath,
+            Url = file.Url,
+            ThumbnailUrl = file.ThumbnailUrl,
+            Width = file.Width,
+            Height = file.Height,
+            FolderId = file.FolderId
+        };
+        showEditDialog = true;
+    }
+
+    private void CloseEditDialog()
+    {
+        showEditDialog = false;
+        editingFile = null;
+    }
+
+    private async Task SaveFileEdits()
+    {
+        if (editingFile == null) return;
+
+        try
+        {
+            await MediaService.UpdateFileAsync(editingFile);
+            await LoadMediaLibrary();
+            CloseEditDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error updating file: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteFile(MediaFile file)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Delete '{file.Title}'?")) return;
+
+        try
+        {
+            await MediaService.DeleteFileAsync(file.Id);
+            await LoadMediaLibrary();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error deleting file: {ex.Message}");
+        }
+    }
+
+    private void ViewFile(MediaFile file)
+    {
+        NavigationManager.NavigateTo(file.Url, true);
+    }
+
+    private bool IsImage(string contentType)
+    {
+        return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetFileIcon(string extension)
+    {
+        return extension.ToLower() switch
+        {
+            ".pdf" => "📄",
+            ".doc" or ".docx" => "📝",
+            ".xls" or ".xlsx" => "📊",
+            ".zip" or ".rar" => "🗜️",
+            ".mp4" or ".avi" or ".mov" => "🎬",
+            ".mp3" or ".wav" => "🎵",
+            _ => "📎"
+        };
+    }
+
+    private string FormatBytes(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}
+
 <style>
-    .admin-page {
-        padding: 30px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        margin-bottom: 40px;
-    }
-
-    .page-header h1 {
-        color: #0078D4;
-        font-size: 32px;
-        margin-bottom: 8px;
-    }
-
-    .page-header p {
-        color: #666;
-        font-size: 16px;
-    }
-
-    .coming-soon-card {
-        background: white;
-        border-radius: 12px;
-        padding: 48px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        text-align: center;
-    }
-
-    .coming-soon-icon {
-        font-size: 72px;
-        margin-bottom: 24px;
-    }
-
-    .coming-soon-card h2 {
-        color: #333;
-        font-size: 28px;
-        margin-bottom: 16px;
-    }
-
-    .coming-soon-card > p {
-        color: #666;
-        font-size: 16px;
-        margin-bottom: 24px;
-    }
-
-    .feature-list {
-        list-style: none;
-        padding: 0;
-        margin: 24px 0;
-        text-align: left;
-        max-width: 500px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .feature-list li {
-        padding: 12px 16px;
-        color: #333;
-        font-size: 15px;
-        border-left: 3px solid #0078D4;
-        margin-bottom: 8px;
-        background: #f8f9fa;
-        border-radius: 4px;
-    }
-
-    .note {
-        margin-top: 32px;
-        padding: 16px;
-        background: #e7f3ff;
-        border-left: 4px solid #0078D4;
-        border-radius: 4px;
-        color: #004578;
-        font-size: 14px;
-    }
+    .media-library { padding: 30px; max-width: 1400px; margin: 0 auto; }
+    .page-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px; }
+    .page-header h1 { color: #0078D4; font-size: 32px; margin-bottom: 8px; }
+    .page-header p { color: #666; font-size: 16px; }
+    .header-actions { display: flex; gap: 12px; }
+    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .btn-primary { background: #0078D4; color: white; }
+    .btn-primary:hover:not(:disabled) { background: #106EBE; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-secondary { background: white; color: #0078D4; border: 1px solid #0078D4; }
+    .btn-secondary:hover { background: #f0f0f0; }
+    .media-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .search-box { position: relative; flex: 1; max-width: 400px; }
+    .search-box input { width: 100%; padding: 10px 40px 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .clear-search { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 16px; color: #666; }
+    .view-options { display: flex; gap: 8px; }
+    .view-btn { padding: 8px 16px; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .view-btn.active { background: #0078D4; color: white; border-color: #0078D4; }
+    .storage-info { display: flex; gap: 16px; color: #666; font-size: 14px; }
+    .folders-section { margin-bottom: 32px; }
+    .folders-section h3, .files-section h3 { color: #333; font-size: 18px; margin-bottom: 16px; }
+    .folders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .folder-card { position: relative; padding: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .folder-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #0078D4; }
+    .folder-icon { font-size: 48px; margin-bottom: 12px; }
+    .folder-info h4 { color: #333; font-size: 16px; margin-bottom: 4px; }
+    .folder-info p { color: #666; font-size: 13px; }
+    .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .file-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; transition: all 0.2s; }
+    .file-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #0078D4; }
+    .file-preview { width: 100%; height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .file-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .file-icon { font-size: 64px; }
+    .file-info { padding: 12px; }
+    .file-info h4 { color: #333; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { display: flex; justify-content: space-between; color: #666; font-size: 12px; }
+    .file-actions { display: flex; justify-content: space-around; padding: 8px; border-top: 1px solid #e0e0e0; }
+    .file-actions button { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px 8px; transition: transform 0.2s; }
+    .file-actions button:hover { transform: scale(1.2); }
+    .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .empty-icon { font-size: 72px; margin-bottom: 16px; }
+    .empty-state p { color: #666; font-size: 16px; margin-bottom: 20px; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; overflow: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+    .modal-content.small { max-width: 400px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #e0e0e0; }
+    .modal-header h2 { color: #333; font-size: 20px; margin: 0; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; width: 32px; height: 32px; }
+    .modal-body { padding: 24px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 24px; border-top: 1px solid #e0e0e0; }
+    .upload-area { position: relative; border: 2px dashed #0078D4; border-radius: 8px; padding: 40px; text-align: center; background: #f8f9fa; margin-bottom: 20px; }
+    .file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .upload-prompt { pointer-events: none; }
+    .upload-icon { font-size: 48px; margin-bottom: 16px; }
+    .upload-prompt p { color: #333; font-size: 16px; margin-bottom: 8px; }
+    .upload-hint { color: #666; font-size: 13px; }
+    .selected-files { margin-bottom: 20px; }
+    .selected-files h3 { color: #333; font-size: 16px; margin-bottom: 12px; }
+    .selected-file-item { display: flex; justify-content: space-between; padding: 8px 12px; background: #f5f5f5; border-radius: 4px; margin-bottom: 8px; font-size: 14px; }
+    .upload-progress { text-align: center; padding: 20px; }
+    .error-message { padding: 12px; background: #ffebee; color: #c62828; border-radius: 4px; margin-top: 12px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; color: #333; font-weight: 500; margin-bottom: 8px; font-size: 14px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    .form-group textarea { resize: vertical; }
+    .loading { text-align: center; padding: 60px 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0078D4; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
