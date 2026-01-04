@@ -11,6 +11,7 @@ A modern, modular Content Management System built on .NET 10 and Blazor, inspire
 - **Flexible Permissions**: Fine-grained, SharePoint-style permission system
 - **Master Pages**: Reusable layouts with content zones
 - **Theme Support**: Customizable visual themes
+- **Zoota AI Assistant**: 🤖 AI-powered chat assistant for admin tasks (see [User Guide](docs/ZOOTA_USER_GUIDE.md))
 - **SaaS-Ready**: Architecture designed for multi-tenancy (coming soon)
 
 ## 📋 Requirements
@@ -112,8 +113,11 @@ Visit `/cms-home` to see the demo website!
 - **[Troubleshooting Guide](docs/copilot-agent-troubleshooting.md)** - Detailed analysis of agent workflow failures
 - **[Utility Scripts](scripts/)** - Helper scripts for common tasks (e.g., `fix-base-branch.sh`)
 
-### Roadmap & Planning
+### AI & Automation
+- **[Zoota AI Assistant User Guide](docs/ZOOTA_USER_GUIDE.md)** - Complete guide for using the AI chat assistant
 - **[AI Assistant Roadmap](docs/AI_ASSISTANT_ROADMAP.md)** - 12-month AI integration plan
+
+### Roadmap & Planning
 - **[Implementation Summary](docs/WEBSITE_IMPLEMENTATION_SUMMARY.md)** - Project overview and status
 
 ## 🏗️ Project Structure
