@@ -23,10 +23,10 @@
                 <div class="zoota-header-content">
                     <img src="/assets/zoota-logo/zoota-logo-concept3.svg" alt="Zoota" class="zoota-avatar" />
                     <div class="zoota-title">
-                        <h3>Zoota AI Assistant</h3>
+                        <h3>Zoota CMS Assistant</h3>
                         <p class="zoota-status">
                             <span class="status-dot"></span>
-                            Online - Powered by Azure AI
+                            Active - Full CMS Control
                         </p>
                     </div>
                 </div>
@@ -46,16 +46,16 @@
                     <div class="zoota-welcome">
                         <img src="/assets/zoota-logo/zoota-logo-concept1.svg" alt="Zoota" class="zoota-welcome-logo" />
                         <h4>Hi! I'm Zoota 👋</h4>
-                        <p>Your friendly AI assistant powered by Azure. How can I help you today?</p>
+                        <p>Your AI-powered CMS administrator. I have full control over your CMS - just ask me to create pages, manage content, or perform any admin task!</p>
                         <div class="zoota-suggestions">
-                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("Tell me about OrkinosAI")'>
-                                Tell me about OrkinosAI
+                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("Create a page called About Us")'>
+                                Create a page called "About Us"
                             </button>
-                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("What services do you offer?")'>
-                                What services do you offer?
+                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("List all pages in the CMS")'>
+                                List all pages in the CMS
                             </button>
-                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("How can AI help my business?")'>
-                                How can AI help my business?
+                            <button class="suggestion-btn" @onclick='() => SendQuickMessage("Show me all users")'>
+                                Show me all users
                             </button>
                         </div>
                     </div>
