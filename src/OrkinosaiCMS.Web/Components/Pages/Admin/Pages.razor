@@ -3,8 +3,9 @@
 @layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
 @using Microsoft.AspNetCore.Authorization
 @using OrkinosaiCMS.Core.Entities.Sites
-@using System.Net.Http.Json
-@inject HttpClient Http
+@using OrkinosaiCMS.Core.Interfaces.Services
+@inject IPageService PageService
+@inject IMasterPageService MasterPageService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
@@ -770,12 +771,9 @@
     {
         try
         {
-            var response = await Http.GetAsync($"/api/Page/site/{DefaultSiteId}");
-            if (response.IsSuccessStatusCode)
-            {
-                pages = await response.Content.ReadFromJsonAsync<List<Page>>();
-                FilterPages(selectedFilter);
-            }
+            var allPages = await PageService.GetBySiteAsync(DefaultSiteId);
+            pages = allPages.ToList();
+            FilterPages(selectedFilter);
         }
         catch (Exception ex)
         {
@@ -787,11 +785,8 @@
     {
         try
         {
-            var response = await Http.GetAsync($"/api/MasterPage/site/{DefaultSiteId}");
-            if (response.IsSuccessStatusCode)
-            {
-                masterPages = await response.Content.ReadFromJsonAsync<List<MasterPage>>();
-            }
+            var allMasterPages = await MasterPageService.GetBySiteAsync(DefaultSiteId);
+            masterPages = allMasterPages.ToList();
         }
         catch (Exception ex)
         {
@@ -870,58 +865,19 @@
                 return;
             }
 
-            HttpResponseMessage response;
-            
             if (editingPage.Id > 0)
             {
                 // Update existing page
-                response = await Http.PutAsJsonAsync($"/api/Page/{editingPage.Id}", new
-                {
-                    parentId = editingPage.ParentId,
-                    title = editingPage.Title,
-                    path = editingPage.Path,
-                    content = editingPage.Content,
-                    masterPageId = editingPage.MasterPageId,
-                    order = editingPage.Order,
-                    isPublished = editingPage.IsPublished,
-                    showInNavigation = editingPage.ShowInNavigation,
-                    metaDescription = editingPage.MetaDescription,
-                    metaKeywords = editingPage.MetaKeywords,
-                    iconCssClass = editingPage.IconCssClass,
-                    requiredPermission = editingPage.RequiredPermission
-                });
+                await PageService.UpdateAsync(editingPage);
             }
             else
             {
                 // Create new page
-                response = await Http.PostAsJsonAsync("/api/Page", new
-                {
-                    siteId = editingPage.SiteId,
-                    parentId = editingPage.ParentId,
-                    title = editingPage.Title,
-                    path = editingPage.Path,
-                    content = editingPage.Content,
-                    masterPageId = editingPage.MasterPageId,
-                    order = editingPage.Order,
-                    isPublished = editingPage.IsPublished,
-                    showInNavigation = editingPage.ShowInNavigation,
-                    metaDescription = editingPage.MetaDescription,
-                    metaKeywords = editingPage.MetaKeywords,
-                    iconCssClass = editingPage.IconCssClass,
-                    requiredPermission = editingPage.RequiredPermission
-                });
+                await PageService.CreateAsync(editingPage);
             }
 
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadPages();
-                ClosePageEditor();
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JSRuntime.InvokeVoidAsync("alert", $"Error saving page: {error}");
-            }
+            await LoadPages();
+            ClosePageEditor();
         }
         catch (Exception ex)
         {
@@ -939,11 +895,8 @@
     {
         try
         {
-            var response = await Http.PostAsync($"/api/Page/{page.Id}/publish", null);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadPages();
-            }
+            await PageService.PublishAsync(page.Id);
+            await LoadPages();
         }
         catch (Exception ex)
         {
@@ -955,11 +908,8 @@
     {
         try
         {
-            var response = await Http.PostAsync($"/api/Page/{page.Id}/unpublish", null);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadPages();
-            }
+            await PageService.UnpublishAsync(page.Id);
+            await LoadPages();
         }
         catch (Exception ex)
         {
@@ -974,11 +924,8 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"/api/Page/{page.Id}");
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadPages();
-            }
+            await PageService.DeleteAsync(page.Id);
+            await LoadPages();
         }
         catch (Exception ex)
         {
