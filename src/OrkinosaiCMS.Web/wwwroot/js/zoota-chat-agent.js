@@ -14,15 +14,22 @@ window.zootaChatAgent = {
             return;
         }
 
-        // Auto-resize function
+        // Auto-resize function with debouncing for performance
+        let resizeTimeout;
         const autoResize = () => {
             textarea.style.height = 'auto';
             const newHeight = Math.min(textarea.scrollHeight, 120); // Max 120px
             textarea.style.height = newHeight + 'px';
         };
 
+        // Debounced resize handler
+        const debouncedResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(autoResize, 10);
+        };
+
         // Handle input events for auto-resize
-        textarea.addEventListener('input', autoResize);
+        textarea.addEventListener('input', debouncedResize);
 
         // Handle keyboard shortcuts
         textarea.addEventListener('keydown', (e) => {
@@ -39,10 +46,15 @@ window.zootaChatAgent = {
             // Shift+Enter for new line (default behavior, just don't prevent)
         });
 
-        // Focus the textarea when chat panel opens
-        setTimeout(() => {
-            textarea.focus();
-        }, 100);
+        // Focus the textarea when chat panel opens (using requestAnimationFrame for reliability)
+        const focusTextarea = () => {
+            if (textarea.offsetParent !== null) {
+                textarea.focus();
+            } else {
+                requestAnimationFrame(focusTextarea);
+            }
+        };
+        requestAnimationFrame(focusTextarea);
 
         // Initial resize
         autoResize();
