@@ -306,9 +306,162 @@ Use this information to provide accurate, specific, and helpful responses. Alway
         # Fallback to config-based knowledge
         return base_prompt
 
+def detect_cms_intent(user_message):
+    """Detect if user wants to perform a CMS operation"""
+    message_lower = user_message.lower()
+    
+    # Intent patterns for CMS operations (match flexible phrases)
+    intents = {
+        'create_page': [
+            'create', 'new', 'add', 'make'  # These will be combined with 'page'
+        ],
+        'list_pages': ['list', 'show', 'all', 'get'],  # Combined with 'page'
+        'delete_page': ['delete', 'remove'],  # Combined with 'page'
+        'update_page': ['update', 'edit', 'modify', 'change'],  # Combined with 'page'
+        'create_content': ['content'],  # Will check with create/new/add
+        'list_content': ['content'],  # Will check with list/show/all
+        'delete_content': ['content'],  # Will check with delete/remove
+        'list_users': ['user', 'users']  # Will check with list/show/all
+    }
+    
+    # Check for page operations
+    if 'page' in message_lower or 'sayfa' in message_lower:
+        if any(word in message_lower for word in ['create', 'new', 'add', 'make', 'oluştur', 'yeni']):
+            return 'create_page'
+        elif any(word in message_lower for word in ['list', 'show', 'all', 'get', 'listele', 'göster', 'tüm']):
+            return 'list_pages'
+        elif any(word in message_lower for word in ['delete', 'remove', 'sil']):
+            return 'delete_page'
+        elif any(word in message_lower for word in ['update', 'edit', 'modify', 'change', 'güncelle', 'düzenle']):
+            return 'update_page'
+    
+    # Check for content operations
+    if 'content' in message_lower or 'içerik' in message_lower:
+        if any(word in message_lower for word in ['create', 'new', 'add', 'make', 'oluştur', 'yeni']):
+            return 'create_content'
+        elif any(word in message_lower for word in ['list', 'show', 'all', 'get', 'listele', 'göster', 'tüm']):
+            return 'list_content'
+        elif any(word in message_lower for word in ['delete', 'remove', 'sil']):
+            return 'delete_content'
+    
+    # Check for user operations
+    if any(word in message_lower for word in ['user', 'users', 'kullanıcı', 'kullanıcıları']):
+        if any(word in message_lower for word in ['list', 'show', 'all', 'get', 'listele', 'göster', 'tüm']):
+            return 'list_users'
+    
+    return None
+
+def extract_page_details(user_message):
+    """Extract page title and other details from user message"""
+    # Try to find quoted text for title
+    quoted = re.findall(r'["\']([^"\']+)["\']', user_message)
+    if quoted:
+        return {'title': quoted[0]}
+    
+    # Try to find title after keywords (more flexible patterns)
+    patterns = [
+        # English patterns
+        r'(?:titled?|named?|called?)\s+(.+?)(?:\s+with|\s+for|\s+and|$)',
+        r'page\s+(?:titled?|named?|called?)\s+(.+?)(?:\s+with|\s+for|\s+and|$)',
+        r'(?:create|new|add|make)\s+(?:a\s+)?page\s+(?:titled?|named?|called?)?\s*(.+?)(?:\s+with|\s+for|\s+and|$)',
+        # Turkish patterns
+        r'başlıklı\s+(.+?)(?:\s+ile|\s+için|\s+ve|$)',
+        r'adlı\s+(.+?)(?:\s+ile|\s+için|\s+sayfa|\s+ve|$)',
+        r'(?:oluştur|yeni)\s+(?:bir\s+)?sayfa\s+(?:adlı)?\s*(.+?)(?:\s+ile|\s+için|\s+ve|$)',
+        r'(.+?)\s+(?:adlı|başlıklı)\s+(?:bir\s+)?sayfa'
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, user_message, re.IGNORECASE)
+        if match:
+            title = match.group(1).strip()
+            # Clean up common trailing/leading words
+            title = re.sub(r'^\s*(a|an|the|bir)\s+', '', title, flags=re.IGNORECASE)
+            title = re.sub(r'\s+(page|sayfa|called|named|titled|adlı|başlıklı)$', '', title, flags=re.IGNORECASE)
+            if title and len(title) > 1:  # Make sure we got something meaningful
+                return {'title': title}
+    
+    return {}
+
+def get_conversational_cms_response(user_message, intent, details=None):
+    """Generate conversational response for CMS operations"""
+    detected_lang = detect_language(user_message)
+    is_turkish = detected_lang == 'tr'
+    
+    if intent == 'create_page':
+        if details and 'title' in details:
+            title = details['title']
+            if is_turkish:
+                return f"✅ '{title}' adlı sayfa oluşturuldu! Sayfa yönetimi panelinden düzenleyebilirsiniz."
+            else:
+                return f"✅ Page '{title}' has been created! You can edit it from the page management panel."
+        else:
+            if is_turkish:
+                return "📝 Sayfa oluşturmak için lütfen sayfa başlığını belirtin. Örnek: 'About Us' adlı bir sayfa oluştur"
+            else:
+                return "📝 Please specify the page title. Example: Create a page called 'About Us'"
+    
+    elif intent == 'list_pages':
+        if is_turkish:
+            return "📄 Sayfa listesi alınıyor... CMS'inizdeki tüm sayfaları görüntülemek için sayfa yönetimi paneline gidin."
+        else:
+            return "📄 Fetching page list... Go to the page management panel to view all pages in your CMS."
+    
+    elif intent == 'delete_page':
+        if is_turkish:
+            return "🗑️ Hangi sayfayı silmek istiyorsunuz? Lütfen sayfa adını belirtin."
+        else:
+            return "🗑️ Which page would you like to delete? Please specify the page name."
+    
+    elif intent == 'create_content':
+        if is_turkish:
+            return "📝 İçerik oluşturma özelliği aktif. İçerik yönetimi panelinden yeni içerik ekleyebilirsiniz."
+        else:
+            return "📝 Content creation feature is active. You can add new content from the content management panel."
+    
+    elif intent == 'list_content':
+        if is_turkish:
+            return "📋 İçerik listesi hazırlanıyor... Tüm içerikleri görüntülemek için içerik yönetimi paneline gidin."
+        else:
+            return "📋 Preparing content list... Go to the content management panel to view all content."
+    
+    elif intent == 'list_users':
+        if is_turkish:
+            return "👥 Kullanıcı listesi alınıyor... Kullanıcı yönetimi panelinden tüm kullanıcıları görüntüleyebilirsiniz."
+        else:
+            return "👥 Fetching user list... You can view all users from the user management panel."
+    
+    # Default CMS guidance
+    if is_turkish:
+        return """🤖 Zoota CMS Asistanı olarak şunları yapabilirim:
+
+✨ Sayfa oluşturma: "About Us adlı bir sayfa oluştur"
+📋 İçerik yönetimi: "Tüm sayfaları listele"
+🔍 Arama ve navigasyon: "Kullanıcıları göster"
+💡 CMS önerileri ve yardım
+
+Nasıl yardımcı olabilirim?"""
+    else:
+        return """🤖 As Zoota CMS Assistant, I can help you:
+
+✨ Create pages: "Create a page called About Us"
+📋 Manage content: "List all pages"
+🔍 Search and navigate: "Show users"
+💡 Get CMS suggestions and help
+
+How can I assist you today?"""
+
 def get_mock_response(user_message):
     """Generate mock response when Azure OpenAI is not configured"""
     message_lower = user_message.lower()
+    
+    # First check for CMS operations
+    intent = detect_cms_intent(user_message)
+    if intent:
+        details = None
+        if intent == 'create_page':
+            details = extract_page_details(user_message)
+        return get_conversational_cms_response(user_message, intent, details)
     
     # Detect language
     detected_lang = detect_language(user_message)
