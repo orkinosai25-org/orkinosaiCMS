@@ -47,11 +47,16 @@ window.zootaChatAgent = {
         });
 
         // Focus the textarea when chat panel opens (using requestAnimationFrame for reliability)
+        let focusAttempts = 0;
+        const maxFocusAttempts = 50; // Maximum 50 attempts (~800ms)
         const focusTextarea = () => {
             if (textarea.offsetParent !== null) {
                 textarea.focus();
-            } else {
+            } else if (focusAttempts < maxFocusAttempts) {
+                focusAttempts++;
                 requestAnimationFrame(focusTextarea);
+            } else {
+                console.warn('Zoota Chat Agent: Could not focus textarea after maximum attempts');
             }
         };
         requestAnimationFrame(focusTextarea);
@@ -83,18 +88,32 @@ window.zootaChatAgent = {
 };
 
 // Auto-scroll to bottom when new messages appear
+let chatObserver = null;
 const observeChatMessages = () => {
     const chatBody = document.querySelector('.zoota-chat-body');
     if (!chatBody) return;
 
-    const observer = new MutationObserver(() => {
+    // Disconnect existing observer if any
+    if (chatObserver) {
+        chatObserver.disconnect();
+    }
+
+    chatObserver = new MutationObserver(() => {
         window.zootaChatAgent.scrollToBottom();
     });
 
-    observer.observe(chatBody, {
+    chatObserver.observe(chatBody, {
         childList: true,
         subtree: true
     });
+};
+
+// Cleanup function for when chat is closed
+window.zootaChatAgent.cleanup = function() {
+    if (chatObserver) {
+        chatObserver.disconnect();
+        chatObserver = null;
+    }
 };
 
 // Initialize observers when DOM is ready

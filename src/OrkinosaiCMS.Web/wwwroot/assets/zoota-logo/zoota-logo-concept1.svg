@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Zoota AI Assistant Logo">
+  <title>Zoota AI Assistant - Friendly Chat Bot</title>
   <!-- Zoota AI Assistant Logo Concept 1 - Friendly Chat Bot -->
   <defs>
     <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -28,8 +29,8 @@
   <path d="M 140 130 L 150 140 L 145 130 Z" fill="white" opacity="0.95"/>
   
   <!-- Sparkle effects -->
-  <circle cx="45" cy="55" r="3" fill="#50E6FF"/>
-  <circle cx="155" cy="145" r="4" fill="#50E6FF"/>
-  <circle cx="160" cy="60" r="2" fill="white" opacity="0.8"/>
-  <circle cx="40" cy="140" r="2" fill="white" opacity="0.8"/>
+  <circle cx="45" cy="55" r="4" fill="#50E6FF"/>
+  <circle cx="155" cy="145" r="5" fill="#50E6FF"/>
+  <circle cx="160" cy="60" r="3" fill="white" opacity="0.8"/>
+  <circle cx="40" cy="140" r="3" fill="white" opacity="0.8"/>
 </svg>
