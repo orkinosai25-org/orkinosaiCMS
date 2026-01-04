@@ -117,7 +117,8 @@ builder.Services.AddScoped<IMediaService>(sp =>
     var folderRepo = sp.GetRequiredService<IRepository<OrkinosaiCMS.Core.Entities.Media.MediaFolder>>();
     var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
     var webHostEnv = sp.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
-    return new MediaService(fileRepo, folderRepo, unitOfWork, webHostEnv.WebRootPath);
+    var logger = sp.GetRequiredService<ILogger<MediaService>>();
+    return new MediaService(fileRepo, folderRepo, unitOfWork, webHostEnv.WebRootPath, logger);
 });
 
 

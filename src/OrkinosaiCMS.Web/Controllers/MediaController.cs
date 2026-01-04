@@ -260,6 +260,17 @@ public class MediaController : ControllerBase
             if (request.File == null || request.File.Length == 0)
                 return BadRequest(new { message = "No file provided" });
 
+            // Validate file size (50MB max)
+            const long maxFileSize = 50 * 1024 * 1024;
+            if (request.File.Length > maxFileSize)
+                return BadRequest(new { message = "File size exceeds 50MB limit" });
+
+            // Validate file extension
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".zip" };
+            var extension = Path.GetExtension(request.File.FileName).ToLower();
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = $"File type {extension} is not allowed" });
+
             using (var stream = request.File.OpenReadStream())
             {
                 var file = await _mediaService.UploadFileAsync(

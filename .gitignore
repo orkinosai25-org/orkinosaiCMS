@@ -406,3 +406,7 @@ pr-summary.md
 *.db
 *.db-shm
 *.db-wal
+
+# Media Library uploads
+wwwroot/uploads/*
+!wwwroot/uploads/README.md

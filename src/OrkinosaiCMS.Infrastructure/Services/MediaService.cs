@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OrkinosaiCMS.Core.Entities.Media;
 using OrkinosaiCMS.Core.Interfaces.Repositories;
 using OrkinosaiCMS.Core.Interfaces.Services;
@@ -15,6 +16,7 @@ public class MediaService : IMediaService
     private readonly IRepository<MediaFolder> _folderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly string _webRootPath;
+    private readonly ILogger<MediaService>? _logger;
     private const string MediaDirectory = "uploads";
     private const string ThumbnailDirectory = "uploads/thumbnails";
     private const int ThumbnailMaxWidth = 300;
@@ -24,12 +26,14 @@ public class MediaService : IMediaService
         IRepository<MediaFile> fileRepository,
         IRepository<MediaFolder> folderRepository,
         IUnitOfWork unitOfWork,
-        string webRootPath)
+        string webRootPath,
+        ILogger<MediaService>? logger = null)
     {
         _fileRepository = fileRepository;
         _folderRepository = folderRepository;
         _unitOfWork = unitOfWork;
         _webRootPath = webRootPath;
+        _logger = logger;
     }
 
     #region Folder Operations
@@ -204,9 +208,10 @@ public class MediaService : IMediaService
                     mediaFile.ThumbnailUrl = relativeThumbnailPath;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // If thumbnail generation fails, continue without it
+                _logger?.LogWarning(ex, "Failed to generate thumbnail for file {FileName}", fileName);
                 mediaFile.ThumbnailUrl = relativeFilePath;
             }
         }
@@ -247,9 +252,10 @@ public class MediaService : IMediaService
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Continue with soft delete even if physical file deletion fails
+                // Log error but continue with soft delete even if physical file deletion fails
+                _logger?.LogError(ex, "Failed to delete physical file for MediaFile ID {FileId}", file.Id);
             }
 
             _fileRepository.Remove(file);

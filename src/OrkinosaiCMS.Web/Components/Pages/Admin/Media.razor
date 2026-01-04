@@ -239,6 +239,7 @@
 </div>
 
 @code {
+    private const long MaxFileSize = 50 * 1024 * 1024; // 50MB
     private bool loading = true;
     private List<MediaFolder> folders = new();
     private List<MediaFile> files = new();
@@ -331,7 +332,7 @@
         {
             foreach (var file in selectedFiles)
             {
-                using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+                using var stream = file.OpenReadStream(maxAllowedSize: MaxFileSize);
                 await MediaService.UploadFileAsync(stream, file.Name, file.ContentType, file.Size, currentFolderId, file.Name, null, null);
             }
 
