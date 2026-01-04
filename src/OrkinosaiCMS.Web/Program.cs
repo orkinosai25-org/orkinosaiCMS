@@ -111,6 +111,16 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<INavigationService, NavigationService>();
+builder.Services.AddScoped<IMediaService>(sp =>
+{
+    var fileRepo = sp.GetRequiredService<IRepository<OrkinosaiCMS.Core.Entities.Media.MediaFile>>();
+    var folderRepo = sp.GetRequiredService<IRepository<OrkinosaiCMS.Core.Entities.Media.MediaFolder>>();
+    var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
+    var webHostEnv = sp.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+    var logger = sp.GetRequiredService<ILogger<MediaService>>();
+    return new MediaService(fileRepo, folderRepo, unitOfWork, webHostEnv.WebRootPath, logger);
+});
+
 
 var app = builder.Build();
 

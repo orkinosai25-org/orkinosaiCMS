@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OrkinosaiCMS.Core.Entities.Identity;
+using OrkinosaiCMS.Core.Entities.Media;
 using OrkinosaiCMS.Core.Entities.Navigation;
 using OrkinosaiCMS.Core.Entities.Sites;
 using OrkinosaiCMS.Core.Entities.Subscriptions;
@@ -51,6 +52,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
 
+    // Media
+    public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
+    public DbSet<MediaFolder> MediaFolders => Set<MediaFolder>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -84,6 +89,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         
         // Identity entities soft delete filter
         modelBuilder.Entity<ApplicationUser>().HasQueryFilter(e => !e.IsDeleted);
+        
+        // Media entities soft delete filters
+        modelBuilder.Entity<MediaFile>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<MediaFolder>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
