@@ -105,6 +105,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<IMasterPageService, MasterPageService>();
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
