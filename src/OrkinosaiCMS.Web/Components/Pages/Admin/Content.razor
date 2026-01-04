@@ -2,104 +2,962 @@
 @rendermode InteractiveServer
 @layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
 @using Microsoft.AspNetCore.Authorization
+@using OrkinosaiCMS.Core.Entities.Sites
+@using OrkinosaiCMS.Core.Interfaces.Services
+@inject IContentService ContentService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Content - OrkinosaiCMS Admin</PageTitle>
+<PageTitle>Content Management - OrkinosaiCMS Admin</PageTitle>
 
-<div class="admin-page">
+<div class="content-page">
     <div class="page-header">
-        <h1>Content Management</h1>
-        <p>Manage your content items and modules</p>
+        <div>
+            <h1>Content Management</h1>
+            <p>Create and manage your content items and modules</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-primary" @onclick="ShowCreateContent">
+                <span>➕</span> Create Content
+            </button>
+        </div>
     </div>
 
-    <div class="coming-soon-card">
-        <div class="coming-soon-icon">📝</div>
-        <h2>Content Management Coming Soon</h2>
-        <p>This feature is currently under development. You will be able to:</p>
-        <ul class="feature-list">
-            <li>✨ Create and edit content items</li>
-            <li>📋 Manage HTML content and rich text</li>
-            <li>🔧 Configure content modules</li>
-            <li>🎨 Add web parts to pages</li>
-            <li>📊 Organize content categories</li>
-        </ul>
-        <p class="note">In the meantime, you can manage navigation and themes from the sidebar.</p>
+    <div class="filter-bar">
+        <button class="filter-btn @(selectedFilter == "all" ? "active" : "")" @onclick='() => FilterContent("all")'>
+            All Content (@contentItems?.Count() ?? 0)
+        </button>
+        <button class="filter-btn @(selectedFilter == "published" ? "active" : "")" @onclick='() => FilterContent("published")'>
+            📗 Published (@contentItems?.Count(c => c.IsPublished) ?? 0)
+        </button>
+        <button class="filter-btn @(selectedFilter == "drafts" ? "active" : "")" @onclick='() => FilterContent("drafts")'>
+            📝 Drafts (@contentItems?.Count(c => !c.IsPublished) ?? 0)
+        </button>
     </div>
+
+    <div class="search-bar">
+        <input type="text" 
+               class="search-input" 
+               placeholder="🔍 Search content by title or body..." 
+               @bind="searchTerm" 
+               @bind:event="oninput"
+               @onkeyup="OnSearchChanged" />
+        
+        <select class="filter-select" @bind="typeFilter" @bind:after="OnFilterChanged">
+            <option value="">All Types</option>
+            <option value="HTML">HTML</option>
+            <option value="Document">Document</option>
+            <option value="Image">Image</option>
+            <option value="Video">Video</option>
+            <option value="Custom">Custom</option>
+        </select>
+
+        <select class="filter-select" @bind="categoryFilter" @bind:after="OnFilterChanged">
+            <option value="">All Categories</option>
+            @if (categories != null)
+            {
+                @foreach (var cat in categories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            }
+        </select>
+    </div>
+
+    @if (contentItems == null)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading content...</p>
+        </div>
+    }
+    else if (!filteredContent.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h3>@(string.IsNullOrEmpty(searchTerm) ? "No content yet" : "No content found")</h3>
+            <p>@(string.IsNullOrEmpty(searchTerm) ? "Create your first content item to get started" : "Try adjusting your search or filters")</p>
+            @if (string.IsNullOrEmpty(searchTerm))
+            {
+                <button class="btn-primary" @onclick="ShowCreateContent">
+                    Create Content
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="content-grid">
+            @foreach (var content in filteredContent.OrderByDescending(c => c.ModifiedOn ?? c.CreatedOn))
+            {
+                <div class="content-card @(!content.IsPublished ? "draft" : "")">
+                    <div class="card-header">
+                        <div class="card-type">
+                            @GetContentIcon(content.ContentType) @content.ContentType
+                        </div>
+                        @if (content.IsPublished)
+                        {
+                            <span class="status-badge published">✓ Published</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge draft">📝 Draft</span>
+                        }
+                    </div>
+                    
+                    <h3 class="card-title">@content.Title</h3>
+                    
+                    @if (!string.IsNullOrEmpty(content.Body))
+                    {
+                        <p class="card-body">@GetExcerpt(content.Body, 120)</p>
+                    }
+                    
+                    <div class="card-meta">
+                        @if (!string.IsNullOrEmpty(content.Category))
+                        {
+                            <span class="meta-tag category">📁 @content.Category</span>
+                        }
+                        @if (!string.IsNullOrEmpty(content.Tags))
+                        {
+                            @foreach (var tag in content.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Take(3))
+                            {
+                                <span class="meta-tag">🏷️ @tag.Trim()</span>
+                            }
+                        }
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="card-date">
+                            Updated: @((content.ModifiedOn ?? content.CreatedOn).ToString("MMM dd, yyyy"))
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-icon" @onclick="() => EditContent(content)" title="Edit">
+                                ✏️
+                            </button>
+                            @if (content.IsPublished)
+                            {
+                                <button class="btn-icon" @onclick="() => UnpublishContent(content)" title="Unpublish">
+                                    ⏸️
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn-icon" @onclick="() => PublishContent(content)" title="Publish">
+                                    🚀
+                                </button>
+                            }
+                            <button class="btn-icon danger" @onclick="() => DeleteContent(content)" title="Delete">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (showContentEditor)
+    {
+        <div class="modal-overlay" @onclick="CloseContentEditor">
+            <div class="modal-content large" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>@(editingContent?.Id > 0 ? "Edit Content" : "Create Content")</h2>
+                    <button class="btn-close" @onclick="CloseContentEditor">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Title *</label>
+                            <input type="text" class="form-control" @bind="editingContent!.Title" placeholder="Content title" />
+                        </div>
+                        <div class="form-group">
+                            <label>Content Type *</label>
+                            <select class="form-control" @bind="editingContent!.ContentType">
+                                <option value="HTML">HTML</option>
+                                <option value="Document">Document</option>
+                                <option value="Image">Image</option>
+                                <option value="Video">Video</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Content Body</label>
+                        <textarea class="form-control content-editor" @bind="editingContent!.Body" rows="10" placeholder="Enter your content (HTML supported)"></textarea>
+                        <small class="form-hint">You can use HTML tags for rich formatting</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <input type="text" class="form-control" @bind="editingContent!.Category" placeholder="e.g., Blog, News, Documentation" />
+                        </div>
+                        <div class="form-group">
+                            <label>Tags</label>
+                            <input type="text" class="form-control" @bind="editingContent!.Tags" placeholder="tag1, tag2, tag3" />
+                            <small class="form-hint">Separate tags with commas</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" @bind="editingContent!.IsPublished" />
+                            <span>Publish immediately</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @onclick="CloseContentEditor">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveContent">
+                        @(editingContent?.Id > 0 ? "Update Content" : "Create Content")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 <style>
-    .admin-page {
+    .content-page {
         padding: 30px;
-        max-width: 1200px;
+        max-width: 1600px;
         margin: 0 auto;
     }
 
     .page-header {
-        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 2px solid #e5e7eb;
     }
 
     .page-header h1 {
         color: #0078D4;
         font-size: 32px;
-        margin-bottom: 8px;
+        margin: 0 0 8px 0;
     }
 
     .page-header p {
         color: #666;
         font-size: 16px;
+        margin: 0;
     }
 
-    .coming-soon-card {
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .filter-btn {
+        padding: 10px 20px;
+        border: 2px solid #e5e7eb;
+        background: white;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+        border-color: #0078D4;
+        color: #0078D4;
+    }
+
+    .filter-btn.active {
+        background: #0078D4;
+        color: white;
+        border-color: #0078D4;
+    }
+
+    .search-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 10px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+        border-color: #0078D4;
+    }
+
+    .filter-select {
+        padding: 10px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .filter-select:hover,
+    .filter-select:focus {
+        border-color: #0078D4;
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+        background: #0078D4;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #005a9e;
+    }
+
+    .btn-secondary {
+        padding: 10px 20px;
+        background: #6b7280;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #4b5563;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #0078D4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
         background: white;
         border-radius: 12px;
-        padding: 48px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        text-align: center;
     }
 
-    .coming-soon-icon {
+    .empty-icon {
         font-size: 72px;
         margin-bottom: 24px;
     }
 
-    .coming-soon-card h2 {
+    .empty-state h3 {
         color: #333;
-        font-size: 28px;
-        margin-bottom: 16px;
+        font-size: 24px;
+        margin-bottom: 12px;
     }
 
-    .coming-soon-card > p {
+    .empty-state p {
         color: #666;
         font-size: 16px;
         margin-bottom: 24px;
     }
 
-    .feature-list {
-        list-style: none;
-        padding: 0;
-        margin: 24px 0;
-        text-align: left;
-        max-width: 500px;
-        margin-left: auto;
-        margin-right: auto;
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 24px;
     }
 
-    .feature-list li {
-        padding: 12px 16px;
-        color: #333;
-        font-size: 15px;
-        border-left: 3px solid #0078D4;
-        margin-bottom: 8px;
-        background: #f8f9fa;
-        border-radius: 4px;
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
     }
 
-    .note {
-        margin-top: 32px;
-        padding: 16px;
-        background: #e7f3ff;
-        border-left: 4px solid #0078D4;
-        border-radius: 4px;
-        color: #004578;
+    .content-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0, 120, 212, 0.2);
+    }
+
+    .content-card.draft {
+        border-left: 4px solid #fbbf24;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .card-type {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-badge.published {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.draft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .card-title {
+        color: #111827;
+        font-size: 20px;
+        margin: 0 0 12px 0;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .card-body {
+        color: #4b5563;
         font-size: 14px;
+        line-height: 1.6;
+        margin: 0 0 16px 0;
+        flex: 1;
+    }
+
+    .card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 16px;
+        min-height: 28px;
+    }
+
+    .meta-tag {
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 12px;
+        font-size: 11px;
+        color: #4b5563;
+    }
+
+    .meta-tag.category {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .card-date {
+        font-size: 12px;
+        color: #9ca3af;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        transition: background 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: #f3f4f6;
+    }
+
+    .btn-icon.danger:hover {
+        background: #fee2e2;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-content.large {
+        max-width: 900px;
+    }
+
+    .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        color: #111827;
+        font-size: 24px;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6b7280;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: background 0.2s;
+    }
+
+    .btn-close:hover {
+        background: #f3f4f6;
+    }
+
+    .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer {
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        border-color: #0078D4;
+    }
+
+    .content-editor {
+        font-family: 'Courier New', monospace;
+        resize: vertical;
+        min-height: 200px;
+    }
+
+    .form-hint {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    @@media (max-width: 768px) {
+        .content-page {
+            padding: 20px;
+        }
+
+        .page-header {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header-actions {
+            width: 100%;
+        }
+
+        .header-actions button {
+            flex: 1;
+        }
+
+        .filter-bar {
+            flex-wrap: wrap;
+        }
+
+        .search-bar {
+            flex-direction: column;
+        }
+
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
+
+@code {
+    private List<OrkinosaiCMS.Core.Entities.Sites.Content>? contentItems;
+    private List<OrkinosaiCMS.Core.Entities.Sites.Content> filteredContent = new();
+    private List<string>? categories;
+    private string selectedFilter = "all";
+    private string searchTerm = string.Empty;
+    private string typeFilter = string.Empty;
+    private string categoryFilter = string.Empty;
+    private bool showContentEditor = false;
+    private OrkinosaiCMS.Core.Entities.Sites.Content? editingContent;
+    private const int DefaultSiteId = 1;
+    private System.Threading.Timer? searchDebounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContent();
+    }
+
+    private async Task LoadContent()
+    {
+        try
+        {
+            var allContent = await ContentService.GetBySiteAsync(DefaultSiteId);
+            contentItems = allContent.ToList();
+            
+            // Extract unique categories
+            categories = contentItems
+                .Where(c => !string.IsNullOrEmpty(c.Category))
+                .Select(c => c.Category!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+            
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading content: {ex.Message}");
+        }
+    }
+
+    private void FilterContent(string filter)
+    {
+        selectedFilter = filter;
+        ApplyFilters();
+    }
+
+    private void OnSearchChanged()
+    {
+        searchDebounceTimer?.Dispose();
+        searchDebounceTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                ApplyFilters();
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private void OnFilterChanged()
+    {
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        if (contentItems == null)
+        {
+            filteredContent = new();
+            return;
+        }
+
+        var filtered = contentItems.AsEnumerable();
+
+        // Apply status filter
+        filtered = selectedFilter switch
+        {
+            "published" => filtered.Where(c => c.IsPublished),
+            "drafts" => filtered.Where(c => !c.IsPublished),
+            _ => filtered
+        };
+
+        // Apply type filter
+        if (!string.IsNullOrEmpty(typeFilter))
+        {
+            filtered = filtered.Where(c => c.ContentType == typeFilter);
+        }
+
+        // Apply category filter
+        if (!string.IsNullOrEmpty(categoryFilter))
+        {
+            filtered = filtered.Where(c => c.Category == categoryFilter);
+        }
+
+        // Apply search
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            filtered = filtered.Where(c =>
+                (!string.IsNullOrEmpty(c.Title) && c.Title.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(c.Body) && c.Body.Contains(search, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        filteredContent = filtered.ToList();
+    }
+
+    private void ShowCreateContent()
+    {
+        editingContent = new OrkinosaiCMS.Core.Entities.Sites.Content
+        {
+            SiteId = DefaultSiteId,
+            ContentType = "HTML",
+            IsPublished = false,
+            CreatedOn = DateTime.UtcNow
+        };
+        showContentEditor = true;
+    }
+
+    private void EditContent(OrkinosaiCMS.Core.Entities.Sites.Content content)
+    {
+        editingContent = new OrkinosaiCMS.Core.Entities.Sites.Content
+        {
+            Id = content.Id,
+            SiteId = content.SiteId,
+            Title = content.Title,
+            ContentType = content.ContentType,
+            Body = content.Body,
+            Category = content.Category,
+            Tags = content.Tags,
+            IsPublished = content.IsPublished,
+            AuthorId = content.AuthorId
+        };
+        showContentEditor = true;
+    }
+
+    private async Task SaveContent()
+    {
+        if (editingContent == null || string.IsNullOrWhiteSpace(editingContent.Title))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please enter a title for the content.");
+            return;
+        }
+
+        try
+        {
+            if (editingContent.Id > 0)
+            {
+                // Update existing content
+                var existingContent = await ContentService.GetByIdAsync(editingContent.Id);
+                if (existingContent != null)
+                {
+                    existingContent.Title = editingContent.Title;
+                    existingContent.ContentType = editingContent.ContentType;
+                    existingContent.Body = editingContent.Body;
+                    existingContent.Category = editingContent.Category;
+                    existingContent.Tags = editingContent.Tags;
+                    existingContent.IsPublished = editingContent.IsPublished;
+                    
+                    await ContentService.UpdateAsync(existingContent);
+                }
+            }
+            else
+            {
+                // Create new content
+                if (editingContent.IsPublished)
+                {
+                    editingContent.PublishedOn = DateTime.UtcNow;
+                }
+                await ContentService.CreateAsync(editingContent);
+            }
+
+            CloseContentEditor();
+            await LoadContent();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving content: {ex.Message}");
+        }
+    }
+
+    private void CloseContentEditor()
+    {
+        showContentEditor = false;
+        editingContent = null;
+    }
+
+    private async Task PublishContent(OrkinosaiCMS.Core.Entities.Sites.Content content)
+    {
+        try
+        {
+            await ContentService.PublishAsync(content.Id);
+            await LoadContent();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error publishing content: {ex.Message}");
+        }
+    }
+
+    private async Task UnpublishContent(OrkinosaiCMS.Core.Entities.Sites.Content content)
+    {
+        try
+        {
+            await ContentService.UnpublishAsync(content.Id);
+            await LoadContent();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error unpublishing content: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteContent(OrkinosaiCMS.Core.Entities.Sites.Content content)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure you want to delete '{content.Title}'? This action cannot be undone.");
+        
+        if (!confirmed) return;
+
+        try
+        {
+            await ContentService.DeleteAsync(content.Id);
+            await LoadContent();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error deleting content: {ex.Message}");
+        }
+    }
+
+    private string GetContentIcon(string contentType) => contentType switch
+    {
+        "HTML" => "📝",
+        "Document" => "📄",
+        "Image" => "🖼️",
+        "Video" => "🎬",
+        "Custom" => "🔧",
+        _ => "📦"
+    };
+
+    private string GetExcerpt(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        
+        // Remove HTML tags for excerpt
+        var plainText = System.Text.RegularExpressions.Regex.Replace(text, "<.*?>", string.Empty);
+        
+        if (plainText.Length <= maxLength) return plainText;
+        
+        return plainText.Substring(0, maxLength) + "...";
+    }
+}
+
