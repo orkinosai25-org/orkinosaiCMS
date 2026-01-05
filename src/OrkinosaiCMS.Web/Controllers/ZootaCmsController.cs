@@ -18,6 +18,8 @@ public class ZootaCmsController : ControllerBase
     private readonly IContentService _contentService;
     private readonly IUserService _userService;
     private readonly IPageLayoutService _pageLayoutService;
+    private readonly IAIImageGenerationService _aiImageService;
+    private readonly IMediaService _mediaService;
     private readonly ILogger<ZootaCmsController> _logger;
 
     public ZootaCmsController(
@@ -25,12 +27,16 @@ public class ZootaCmsController : ControllerBase
         IContentService contentService,
         IUserService userService,
         IPageLayoutService pageLayoutService,
+        IAIImageGenerationService aiImageService,
+        IMediaService mediaService,
         ILogger<ZootaCmsController> logger)
     {
         _pageService = pageService;
         _contentService = contentService;
         _userService = userService;
         _pageLayoutService = pageLayoutService;
+        _aiImageService = aiImageService;
+        _mediaService = mediaService;
         _logger = logger;
     }
 
@@ -620,6 +626,134 @@ public class ZootaCmsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Generate an AI image and add it as a hero/banner to the page
+    /// </summary>
+    [HttpPost("pages/{pageId}/generate-banner")]
+    public async Task<IActionResult> GenerateBanner(int pageId, [FromBody] GenerateBannerRequest request)
+    {
+        try
+        {
+            var page = await _pageService.GetByIdAsync(pageId);
+            if (page == null)
+            {
+                return NotFound(new { success = false, message = "Page not found" });
+            }
+
+            // Generate the image using DALL-E
+            _logger.LogInformation("Generating banner image for page {PageId} with prompt: {Prompt}", pageId, request.Prompt);
+            
+            var fileName = $"banner_{page.Title.ToLower().Replace(" ", "_")}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+            var mediaFile = await _aiImageService.GenerateAndSaveImageAsync(
+                request.Prompt,
+                fileName,
+                null, // root folder
+                request.Size ?? "1792x1024"
+            );
+
+            // Get or create layout for the page
+            var layout = await _pageLayoutService.GetLayoutByPageIdAsync(pageId);
+            if (layout == null)
+            {
+                layout = await _pageLayoutService.CreateLayoutAsync(new PageLayout
+                {
+                    PageId = pageId,
+                    IsActive = true
+                });
+            }
+
+            // Get existing sections
+            var sections = await _pageLayoutService.GetSectionsByLayoutIdAsync(layout.Id);
+            var existingSections = sections.ToList();
+
+            // Check if there's already a hero section at the top
+            PageSection heroSection;
+            if (existingSections.Any() && existingSections.OrderBy(s => s.Order).First().SectionType == "full-width")
+            {
+                // Use existing first section if it's full-width
+                heroSection = existingSections.OrderBy(s => s.Order).First();
+                
+                // Check if there are existing blocks
+                var existingBlocks = await _pageLayoutService.GetBlocksBySectionIdAsync(heroSection.Id);
+                var heroBlocks = existingBlocks.Where(b => b.BlockType == "hero").ToList();
+                
+                if (heroBlocks.Any())
+                {
+                    // Update existing hero block
+                    var heroBlock = heroBlocks.First();
+                    heroBlock.Content = $"{{\"title\": \"{request.Title ?? "Welcome"}\", \"subtitle\": \"{request.Subtitle ?? ""}\", \"imageUrl\": \"/uploads/{mediaFile.FileName}\"}}";
+                    await _pageLayoutService.UpdateBlockAsync(heroBlock);
+                }
+                else
+                {
+                    // Add new hero block
+                    var heroBlock = new PageBlock
+                    {
+                        PageSectionId = heroSection.Id,
+                        ColumnIndex = 0,
+                        Order = 0,
+                        BlockType = "hero",
+                        Content = $"{{\"title\": \"{request.Title ?? "Welcome"}\", \"subtitle\": \"{request.Subtitle ?? ""}\", \"imageUrl\": \"/uploads/{mediaFile.FileName}\"}}"
+                    };
+                    await _pageLayoutService.CreateBlockAsync(heroBlock);
+                }
+            }
+            else
+            {
+                // Create new hero section at the top
+                // Reorder existing sections
+                foreach (var section in existingSections)
+                {
+                    section.Order++;
+                    await _pageLayoutService.UpdateSectionAsync(section);
+                }
+
+                heroSection = new PageSection
+                {
+                    PageLayoutId = layout.Id,
+                    Order = 0,
+                    SectionType = "full-width",
+                    ColumnConfiguration = "[{\"width\": \"100%\"}]"
+                };
+                heroSection = await _pageLayoutService.CreateSectionAsync(heroSection);
+
+                // Add hero block with generated image
+                var heroBlock = new PageBlock
+                {
+                    PageSectionId = heroSection.Id,
+                    ColumnIndex = 0,
+                    Order = 0,
+                    BlockType = "hero",
+                    Content = $"{{\"title\": \"{request.Title ?? "Welcome"}\", \"subtitle\": \"{request.Subtitle ?? ""}\", \"imageUrl\": \"/uploads/{mediaFile.FileName}\"}}"
+                };
+                await _pageLayoutService.CreateBlockAsync(heroBlock);
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Banner generated and added to page '{page.Title}'",
+                data = new
+                {
+                    mediaFileId = mediaFile.Id,
+                    imageUrl = $"/uploads/{mediaFile.FileName}",
+                    fileName = mediaFile.FileName,
+                    prompt = request.Prompt
+                }
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Configuration error generating banner");
+            return StatusCode(500, new { success = false, message = $"Configuration error: {ex.Message}" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating banner for page {PageId}", pageId);
+            return StatusCode(500, new { success = false, message = "Error generating banner image" });
+        }
+    }
+
     #endregion
 
     #region Helpers
@@ -721,6 +855,14 @@ public class AddBlockRequest
 public class UpdateBlockRequest
 {
     public string? Content { get; set; }
+}
+
+public class GenerateBannerRequest
+{
+    public string Prompt { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public string? Subtitle { get; set; }
+    public string? Size { get; set; }
 }
 
 #endregion
