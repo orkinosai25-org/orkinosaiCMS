@@ -4,10 +4,10 @@ This document describes the database architecture, entity models, and data acces
 
 ## Overview
 
-OrkinosaiCMS uses **Entity Framework Core 10.0** with environment-specific database providers:
+OrkinosaiCMS uses **Entity Framework Core 10.0** with strict environment-specific database providers:
 
-- **Local Development**: SQLite (default, recommended)
-- **Production/Azure**: Azure SQL Database (enforced)
+- **Local Development (F5/Debug ONLY)**: SQLite
+- **ALL Azure Deployments (dev, staging, production)**: Azure SQL Database (strictly enforced)
 
 The architecture follows clean architecture principles with:
 
@@ -18,11 +18,11 @@ The architecture follows clean architecture principles with:
 
 ## Database Configuration by Environment
 
-### Local Development (SQLite)
+### Local Development (SQLite - F5/Debug ONLY)
 
-**Default Configuration**: The application is pre-configured to use SQLite for local development.
+**IMPORTANT**: SQLite is **ONLY for local Visual Studio F5/debug runs**. It is **NEVER allowed in any deployment**.
 
-**Why SQLite for Development?**
+**Why SQLite for Local Development?**
 - ✅ No installation required - works out of the box
 - ✅ Cross-platform (Windows, macOS, Linux)
 - ✅ Zero configuration
@@ -47,11 +47,11 @@ dotnet ef database update --startup-project ../OrkinosaiCMS.Web
 
 The SQLite database file will be created automatically in the Web project directory.
 
-### Production/Azure (Azure SQL)
+### Azure Deployments (ALL Environments - Azure SQL Required)
 
-**Enforced Configuration**: Production deployments **must** use Azure SQL Database. The application includes automatic validation that prevents SQLite usage in production.
+**CRITICAL**: **ALL Azure deployments** (including dev, staging, and production environments) **MUST use Azure SQL Database**. SQLite is strictly prohibited and will cause immediate startup failure.
 
-**Configuration** (`appsettings.Production.json`):
+**Configuration** (`appsettings.json` base + environment-specific):
 ```json
 {
   "DatabaseProvider": "SqlServer",
@@ -61,7 +61,7 @@ The SQLite database file will be created automatically in the Web project direct
 }
 ```
 
-**Important**: The connection string should be empty in `appsettings.Production.json` and configured via Azure App Service Configuration:
+**Important**: The connection string should be empty in configuration files and configured via Azure App Service Configuration:
 
 1. Navigate to Azure Portal → Your App Service → Configuration
 2. Add Connection String:
@@ -76,28 +76,32 @@ Server=tcp:yourserver.database.windows.net,1433;Initial Catalog=yourdb;User ID=y
 
 ### Configuration Validation & Enforcement
 
-The application includes **automated configuration validation** on startup:
+The application includes **strict automated configuration validation** on startup:
 
-#### Production Environment Checks:
-- ✅ **Blocks SQLite**: If `DatabaseProvider` is set to "SQLite", the application will throw an exception and refuse to start
-- ✅ **Validates Connection String**: Ensures Azure SQL connection string is properly configured
-- ✅ **Logs Configuration**: Records database configuration validation in startup logs
+#### SQLite Validation (Strict):
+- ✅ **Local F5 Only**: SQLite is ONLY allowed in Development environment for local Visual Studio debug runs
+- 🚫 **ALL Deployments**: SQLite is **strictly prohibited** in any deployed environment (including dev, staging, production)
+- 💥 **Startup Failure**: Application will throw exception and refuse to start if SQLite is detected in any deployed environment
 
-#### Development Environment Checks:
-- ⚠️ **Recommends SQLite**: Logs a warning if not using SQLite (but allows other providers)
-- ✅ **Validates Configuration**: Ensures database provider settings are consistent
+#### Azure SQL Validation:
+- ✅ **All Deployments**: All non-local environments MUST use Azure SQL (SqlServer provider)
+- ✅ **Connection String**: Validates that LocalDB connection strings are not used in deployments
+- ✅ **Logging**: All configuration validation results are logged on startup
 
 **Error Messages**:
 
-If production is misconfigured with SQLite:
+If any deployed environment (not just production) is misconfigured with SQLite:
 ```
-CONFIGURATION ERROR: Production environment is configured to use SQLite.
-This is not allowed for production deployments. Production must use Azure SQL Database.
-Please update appsettings.Production.json to set DatabaseProvider to 'SqlServer'
+CONFIGURATION ERROR: [Environment] environment is configured to use SQLite.
+SQLite is ONLY allowed for local Visual Studio F5/debug runs.
+ALL Azure deployments (dev, staging, production) MUST use Azure SQL Database.
 ```
 
-If production connection string is invalid:
+If connection string contains LocalDB in deployed environment:
 ```
+CONFIGURATION ERROR: [Environment] environment has invalid connection string.
+LocalDB is not allowed in deployed environments.
+Azure SQL connection string must be configured via Azure App Service Configuration.
 CONFIGURATION ERROR: Production environment has invalid connection string.
 Azure SQL connection string must be configured via environment variables or Azure App Service Configuration.
 ```

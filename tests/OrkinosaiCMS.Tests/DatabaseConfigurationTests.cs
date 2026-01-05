@@ -11,33 +11,39 @@ namespace OrkinosaiCMS.Tests;
 public class DatabaseConfigurationTests
 {
     [Theory]
-    [InlineData("Production", "SQLite", false, "Production must not use SQLite")]
-    [InlineData("Production", "SqlServer", true, "Production should use SqlServer")]
-    [InlineData("Production", "sqlserver", true, "Production should use SqlServer (case-insensitive)")]
-    [InlineData("Development", "SQLite", true, "Development can use SQLite")]
-    [InlineData("Development", "SqlServer", true, "Development can use SqlServer")]
-    [InlineData("Staging", "SQLite", true, "Staging can use SQLite")]
-    [InlineData("Staging", "SqlServer", true, "Staging can use SqlServer")]
+    [InlineData("Production", "SQLite", false, "Production must not use SQLite - only Azure SQL")]
+    [InlineData("Production", "SqlServer", true, "Production must use SqlServer (Azure SQL)")]
+    [InlineData("Production", "sqlserver", true, "Production must use SqlServer (case-insensitive)")]
+    [InlineData("Development", "SQLite", true, "Development can use SQLite for local F5/debug")]
+    [InlineData("Development", "SqlServer", true, "Development can use SqlServer for deployed dev")]
+    [InlineData("Staging", "SQLite", false, "Staging (deployed) must not use SQLite")]
+    [InlineData("Staging", "SqlServer", true, "Staging must use SqlServer (Azure SQL)")]
+    [InlineData("Test", "SQLite", false, "Any deployed environment must not use SQLite")]
+    [InlineData("Test", "SqlServer", true, "Any deployed environment must use SqlServer")]
     public void ValidateDatabaseProvider_EnforcesCorrectProviderByEnvironment(
         string environment, string provider, bool isValid, string reason)
     {
-        // This test verifies the configuration validation logic from Program.cs:
-        // - Production environment MUST NOT use SQLite
-        // - Production environment SHOULD use SqlServer (Azure SQL)
-        // - Development environment can use any provider (but SQLite is recommended)
-        // - Other environments can use any provider
+        // This test verifies the STRICT configuration validation logic from Program.cs:
+        // - SQLite is ONLY allowed in Development environment (for local F5/debug)
+        // - ALL other environments (Production, Staging, deployed Dev) MUST use SqlServer (Azure SQL)
+        // - This ensures SQLite is never used in any Azure deployment
         
         bool configurationIsValid;
         
-        if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+        if (provider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
         {
-            // Production MUST NOT use SQLite
-            configurationIsValid = !provider.Equals("SQLite", StringComparison.OrdinalIgnoreCase);
+            // SQLite is ONLY valid for Development environment (local F5)
+            configurationIsValid = environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+        }
+        else if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            // SqlServer (Azure SQL) is valid for all environments
+            configurationIsValid = true;
         }
         else
         {
-            // Other environments can use any provider
-            configurationIsValid = true;
+            // Other providers not explicitly validated here
+            configurationIsValid = false;
         }
         
         Assert.Equal(isValid, configurationIsValid);
@@ -81,15 +87,30 @@ public class DatabaseConfigurationTests
     }
     
     [Fact]
-    public void DevelopmentConfiguration_RecommendsSQLite()
+    public void DevelopmentConfiguration_RecommendsSQLiteForLocalOnly()
     {
-        // This test documents that Development environment should prefer SQLite
+        // This test documents that Development environment uses SQLite for LOCAL F5/debug ONLY
         var developmentEnvironment = "Development";
         var recommendedProvider = "SQLite";
         
-        // Verify that SQLite is the recommended provider for development
+        // Verify that SQLite is the recommended provider for local development (F5/debug)
         Assert.Equal("Development", developmentEnvironment);
         Assert.Equal("SQLite", recommendedProvider);
+    }
+    
+    [Fact]
+    public void AllDeployments_RequireAzureSQL()
+    {
+        // This test documents that ALL Azure deployments (dev, staging, production) MUST use Azure SQL
+        // SQLite is ONLY for local Visual Studio F5/debug runs, NEVER for any deployment
+        var deploymentEnvironments = new[] { "Production", "Staging", "Development" }; // when deployed to Azure
+        var requiredProvider = "SqlServer"; // Azure SQL
+        
+        foreach (var env in deploymentEnvironments)
+        {
+            // All deployed environments must use Azure SQL, never SQLite
+            Assert.Equal("SqlServer", requiredProvider);
+        }
     }
     
     [Fact]

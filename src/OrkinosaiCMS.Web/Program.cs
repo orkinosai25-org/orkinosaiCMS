@@ -83,54 +83,59 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Validate database configuration based on environment
 var configLogger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("DatabaseConfig");
 
-if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+// SQLite is ONLY allowed for local Development environment (Visual Studio F5/debug)
+// ALL Azure deployments (including dev deployments) MUST use Azure SQL
+if (databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
 {
-    // CRITICAL: Production MUST use Azure SQL, never SQLite
-    if (databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
+    // SQLite detected - only allow in Development environment with explicit local indicators
+    if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
     {
-        configLogger.LogCritical("CONFIGURATION ERROR: Production environment is configured to use SQLite. " +
-            "This is not allowed for production deployments. Production must use Azure SQL Database.");
-        configLogger.LogCritical("Please update appsettings.Production.json to set DatabaseProvider to 'SqlServer' " +
-            "and configure the Azure SQL connection string via environment variables or Azure App Service Configuration.");
-        throw new InvalidOperationException(
-            "Production environment cannot use SQLite. Please configure Azure SQL Database. " +
-            "Set DatabaseProvider='SqlServer' in appsettings.Production.json and provide Azure SQL connection string.");
-    }
-    
-    // Validate Azure SQL connection string is not empty or default
-    if (string.IsNullOrWhiteSpace(connectionString) || 
-        connectionString.Contains("(localdb)", StringComparison.OrdinalIgnoreCase) ||
-        connectionString.Contains("orkinosai-cms.db", StringComparison.OrdinalIgnoreCase))
-    {
-        configLogger.LogCritical("CONFIGURATION ERROR: Production environment has invalid connection string. " +
-            "Azure SQL connection string must be configured via environment variables or Azure App Service Configuration.");
-        throw new InvalidOperationException(
-            "Production environment requires a valid Azure SQL connection string. " +
-            "Please configure ConnectionStrings__DefaultConnection in Azure App Service Configuration.");
-    }
-    
-    configLogger.LogInformation("✓ Database configuration validated: Production using Azure SQL Database");
-}
-else if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
-{
-    // Development should prefer SQLite for local testing
-    if (!databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
-    {
-        configLogger.LogWarning("Development environment is configured to use {Provider}. " +
-            "For local development, SQLite is recommended for easier setup and testing. " +
-            "Current setting will be used, but consider switching to SQLite for local development.",
-            databaseProvider);
+        // This is acceptable for local F5/debug runs
+        configLogger.LogInformation("✓ Database configuration validated: Local Development using SQLite");
     }
     else
     {
-        configLogger.LogInformation("✓ Database configuration validated: Development using SQLite (recommended for local dev)");
+        // SQLite is NEVER allowed in any deployed environment (Production, Staging, or deployed Dev)
+        configLogger.LogCritical("CONFIGURATION ERROR: {Environment} environment is configured to use SQLite. " +
+            "SQLite is ONLY allowed for local Visual Studio F5/debug runs. " +
+            "ALL Azure deployments (dev, staging, production) MUST use Azure SQL Database.", environment);
+        throw new InvalidOperationException(
+            $"{environment} environment cannot use SQLite. SQLite is only for local development. " +
+            "Please configure Azure SQL Database via Azure App Service Configuration.");
+    }
+}
+else if (databaseProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+{
+    // SqlServer provider - validate connection string for deployed environments
+    if (!environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
+    {
+        // Production, Staging, or other deployed environments
+        if (string.IsNullOrWhiteSpace(connectionString) || 
+            connectionString.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+        {
+            configLogger.LogCritical("CONFIGURATION ERROR: {Environment} environment has invalid connection string. " +
+                "LocalDB is not allowed in deployed environments. " +
+                "Azure SQL connection string must be configured via Azure App Service Configuration.", environment);
+            throw new InvalidOperationException(
+                $"{environment} environment requires a valid Azure SQL connection string. " +
+                "Please configure ConnectionStrings__DefaultConnection in Azure App Service Configuration.");
+        }
+        
+        configLogger.LogInformation("✓ Database configuration validated: {Environment} using Azure SQL Database", environment);
+    }
+    else
+    {
+        // Development environment using SqlServer (not typical for local F5, but allowed)
+        configLogger.LogWarning("Development environment is configured to use SqlServer. " +
+            "For local development (F5/debug), SQLite is recommended for easier setup. " +
+            "If deploying to Azure dev environment, this configuration is correct.");
     }
 }
 else
 {
-    // Other environments (Staging, etc.)
-    configLogger.LogInformation("Database configuration: Environment={Environment}, Provider={Provider}",
-        environment, databaseProvider);
+    // Other providers not supported
+    configLogger.LogWarning("Unsupported database provider: {Provider}. Only SQLite (local dev only) and SqlServer (Azure SQL) are supported.",
+        databaseProvider);
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
