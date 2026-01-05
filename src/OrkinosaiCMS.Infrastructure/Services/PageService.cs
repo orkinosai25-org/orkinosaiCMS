@@ -77,11 +77,32 @@ public class PageService : IPageService
 
     public async Task<Page> UpdateAsync(Page page, CancellationToken cancellationToken = default)
     {
-        page.ModifiedOn = DateTime.UtcNow;
-        _pageRepository.Update(page);
+        // Get the tracked entity from the database to avoid tracking conflicts
+        var existingPage = await _pageRepository.GetByIdAsync(page.Id, cancellationToken);
+        if (existingPage == null)
+        {
+            throw new ArgumentException($"Page with ID {page.Id} not found.");
+        }
+
+        // Update properties on the tracked entity
+        existingPage.SiteId = page.SiteId;
+        existingPage.ParentId = page.ParentId;
+        existingPage.Title = page.Title;
+        existingPage.Path = page.Path;
+        existingPage.Content = page.Content;
+        existingPage.MasterPageId = page.MasterPageId;
+        existingPage.Order = page.Order;
+        existingPage.IsPublished = page.IsPublished;
+        existingPage.ShowInNavigation = page.ShowInNavigation;
+        existingPage.MetaDescription = page.MetaDescription;
+        existingPage.MetaKeywords = page.MetaKeywords;
+        existingPage.IconCssClass = page.IconCssClass;
+        existingPage.RequiredPermission = page.RequiredPermission;
+        existingPage.ModifiedOn = DateTime.UtcNow;
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return page;
+        return existingPage;
     }
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
