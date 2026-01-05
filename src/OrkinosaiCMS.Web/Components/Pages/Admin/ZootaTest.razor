@@ -34,35 +34,77 @@ else
 
         <div class="test-content">
             <div class="upload-section">
-                <h3>Upload Test File</h3>
-                <p>Upload a JSON file containing test steps (e.g., <code>tests.json</code>)</p>
+                <h3>Select Test Files</h3>
+                <p>Choose one or more test files from the <code>tests/zoota-tests</code> folder</p>
                 
-                <div class="file-upload">
-                    <InputFile OnChange="HandleFileSelected" accept=".json" />
-                    @if (!string.IsNullOrEmpty(selectedFileName))
-                    {
-                        <p class="file-info">Selected: <strong>@selectedFileName</strong></p>
-                    }
-                </div>
-
-                @if (!string.IsNullOrEmpty(testJson))
+                @if (availableTestFiles.Any())
                 {
-                    <div class="json-preview">
-                        <h4>Test JSON Preview:</h4>
-                        <pre>@testJson</pre>
+                    <div class="file-selection">
+                        <div class="select-all-container">
+                            <label>
+                                <input type="checkbox" @bind="selectAllChecked" @onclick="ToggleSelectAll" />
+                                <strong>Select All</strong>
+                            </label>
+                        </div>
+                        
+                        <div class="file-list">
+                            @foreach (var testFile in availableTestFiles)
+                            {
+                                <div class="file-item">
+                                    <label>
+                                        <input type="checkbox" 
+                                               checked="@selectedTestFiles.Contains(testFile.Path)" 
+                                               @onchange="@(() => ToggleFileSelection(testFile.Path))" />
+                                        <span class="file-icon">📄</span>
+                                        <span class="file-name">@testFile.Name</span>
+                                        @if (!string.IsNullOrEmpty(testFile.Description))
+                                        {
+                                            <span class="file-description">- @testFile.Description</span>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="no-files-message">
+                        <p>⚠️ No test files found in <code>tests/zoota-tests</code> folder.</p>
+                        <p>Add <code>.json</code> files to the folder to run tests.</p>
                     </div>
                 }
 
-                <button class="btn-run" @onclick="RunTests" disabled="@(string.IsNullOrEmpty(testJson) || isRunning)">
-                    @if (isRunning)
+                <div class="action-buttons">
+                    <button class="btn-run" @onclick="RunSelectedTests" disabled="@(!selectedTestFiles.Any() || isRunning)">
+                        @if (isRunning)
+                        {
+                            <span>⏳ Running Tests...</span>
+                        }
+                        else
+                        {
+                            <span>▶️ Run Selected Tests (@selectedTestFiles.Count)</span>
+                        }
+                    </button>
+                    
+                    @if (selectedTestFiles.Any())
                     {
-                        <span>⏳ Running Tests...</span>
+                        <button class="btn-clear" @onclick="ClearSelection">
+                            Clear Selection
+                        </button>
                     }
-                    else
-                    {
-                        <span>▶️ Run Tests</span>
-                    }
-                </button>
+                </div>
+                
+                <div class="upload-alternative">
+                    <h4>Or Upload a Custom Test File</h4>
+                    <div class="file-upload">
+                        <InputFile OnChange="HandleFileSelected" accept=".json" />
+                        @if (!string.IsNullOrEmpty(uploadedFileName))
+                        {
+                            <p class="file-info">Uploaded: <strong>@uploadedFileName</strong></p>
+                        }
+                    </div>
+                </div>
             </div>
 
             @if (testResults.Any())
@@ -291,6 +333,136 @@ else
         cursor: not-allowed;
     }
 
+    .file-selection {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .select-all-container {
+        padding-bottom: 16px;
+        border-bottom: 2px solid #0078D4;
+        margin-bottom: 16px;
+    }
+
+    .select-all-container label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .select-all-container input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .file-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .file-item {
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+    .file-item:hover {
+        background: #e9ecef;
+    }
+
+    .file-item label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .file-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .file-icon {
+        font-size: 20px;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .file-description {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .no-files-message {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    .no-files-message p {
+        color: #856404;
+        margin: 8px 0;
+    }
+
+    .no-files-message code {
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+
+    .btn-clear {
+        padding: 12px 32px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-clear:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+    .upload-alternative {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .upload-alternative h4 {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+
     .results-summary {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -432,18 +604,118 @@ else
 </style>
 
 @code {
-    private string selectedFileName = string.Empty;
+    private string uploadedFileName = string.Empty;
     private string testJson = string.Empty;
     private bool isRunning = false;
     private List<TestResult> testResults = new();
+    private List<TestFileInfo> availableTestFiles = new();
+    private HashSet<string> selectedTestFiles = new();
+    private bool selectAllChecked = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // If ZootaTesting is disabled, log and potentially redirect
         if (!ZootaTestingOptions.Value.Enabled)
         {
             Logger.LogWarning("Attempted to access Zoota Test Runner while it is disabled in configuration.");
+            return;
         }
+
+        // Load available test files from the tests folder
+        await LoadAvailableTestFiles();
+    }
+
+    private async Task LoadAvailableTestFiles()
+    {
+        try
+        {
+            var testsFolder = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "tests", "zoota-tests");
+            
+            // If the folder doesn't exist, try alternative path
+            if (!Directory.Exists(testsFolder))
+            {
+                testsFolder = Path.Combine(Directory.GetCurrentDirectory(), "tests", "zoota-tests");
+            }
+
+            // Create folder if it doesn't exist
+            if (!Directory.Exists(testsFolder))
+            {
+                Directory.CreateDirectory(testsFolder);
+                Logger.LogInformation("Created tests folder at: {Path}", testsFolder);
+                return;
+            }
+
+            var jsonFiles = Directory.GetFiles(testsFolder, "*.json", SearchOption.TopDirectoryOnly);
+            
+            availableTestFiles.Clear();
+            foreach (var filePath in jsonFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                var description = await GetTestDescription(filePath);
+                
+                availableTestFiles.Add(new TestFileInfo
+                {
+                    Name = fileName,
+                    Path = filePath,
+                    Description = description
+                });
+            }
+
+            Logger.LogInformation("Loaded {Count} test files from {Path}", availableTestFiles.Count, testsFolder);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading available test files");
+        }
+    }
+
+    private async Task<string> GetTestDescription(string filePath)
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(filePath);
+            var testSuite = System.Text.Json.JsonSerializer.Deserialize<TestSuite>(json);
+            return testSuite?.Name ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private void ToggleSelectAll()
+    {
+        selectAllChecked = !selectAllChecked;
+        
+        if (selectAllChecked)
+        {
+            selectedTestFiles = availableTestFiles.Select(f => f.Path).ToHashSet();
+        }
+        else
+        {
+            selectedTestFiles.Clear();
+        }
+    }
+
+    private void ToggleFileSelection(string filePath)
+    {
+        if (selectedTestFiles.Contains(filePath))
+        {
+            selectedTestFiles.Remove(filePath);
+        }
+        else
+        {
+            selectedTestFiles.Add(filePath);
+        }
+
+        // Update select all checkbox state
+        selectAllChecked = selectedTestFiles.Count == availableTestFiles.Count;
+    }
+
+    private void ClearSelection()
+    {
+        selectedTestFiles.Clear();
+        selectAllChecked = false;
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -453,20 +725,113 @@ else
             var file = e.File;
             if (file != null)
             {
-                selectedFileName = file.Name;
+                uploadedFileName = file.Name;
                 
                 using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024); // 1MB limit
                 using var reader = new StreamReader(stream);
                 testJson = await reader.ReadToEndAsync();
                 
-                Logger.LogInformation("Test file loaded: {FileName}", selectedFileName);
+                Logger.LogInformation("Custom test file uploaded: {FileName}", uploadedFileName);
+                
+                // Clear file selection and run the uploaded file
+                selectedTestFiles.Clear();
+                selectAllChecked = false;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading test file");
+            Logger.LogError(ex, "Error loading custom test file");
             testJson = string.Empty;
-            selectedFileName = string.Empty;
+            uploadedFileName = string.Empty;
+        }
+    }
+
+    private async Task RunSelectedTests()
+    {
+        if (!selectedTestFiles.Any())
+            return;
+
+        isRunning = true;
+        testResults.Clear();
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Running {Count} selected test files", selectedTestFiles.Count);
+
+            foreach (var filePath in selectedTestFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                Logger.LogInformation("Executing test file: {FileName}", fileName);
+
+                try
+                {
+                    var json = await File.ReadAllTextAsync(filePath);
+                    await ExecuteTestFile(json, fileName);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error executing test file: {FileName}", fileName);
+                    testResults.Add(new TestResult
+                    {
+                        Action = $"Execute {fileName}",
+                        Passed = false,
+                        Message = $"Failed to execute test file: {fileName}",
+                        Details = ex.Message
+                    });
+                }
+
+                StateHasChanged();
+                await Task.Delay(500); // Small delay between files
+            }
+
+            Logger.LogInformation("Test execution completed. Passed: {Passed}, Failed: {Failed}", 
+                testResults.Count(r => r.Passed), testResults.Count(r => !r.Passed));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error running selected tests");
+            testResults.Add(new TestResult
+            {
+                Action = "Run Tests",
+                Passed = false,
+                Message = "Failed to execute tests",
+                Details = ex.Message
+            });
+        }
+        finally
+        {
+            isRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteTestFile(string json, string fileName)
+    {
+        var testSuite = System.Text.Json.JsonSerializer.Deserialize<TestSuite>(json);
+        
+        if (testSuite?.Steps == null || !testSuite.Steps.Any())
+        {
+            testResults.Add(new TestResult
+            {
+                Action = $"Parse {fileName}",
+                Passed = false,
+                Message = "No test steps found in file",
+                Details = $"File: {fileName}"
+            });
+            return;
+        }
+
+        Logger.LogInformation("Executing {Count} test steps from: {Suite}", 
+            testSuite.Steps.Count, testSuite.Name ?? fileName);
+
+        foreach (var step in testSuite.Steps)
+        {
+            var result = await ExecuteTestStep(step);
+            result.Details = $"From: {fileName}\n{result.Details}";
+            testResults.Add(result);
+            StateHasChanged();
+            await Task.Delay(300); // Small delay for better UX
         }
     }
 
@@ -662,6 +1027,13 @@ else
     }
 
     // Data models for test execution
+    private class TestFileInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
     private class TestSuite
     {
         public string? Name { get; set; }

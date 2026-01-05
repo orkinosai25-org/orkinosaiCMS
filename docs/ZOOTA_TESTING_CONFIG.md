@@ -4,6 +4,18 @@
 
 The `ZootaTesting` configuration section controls the visibility and accessibility of the Zoota Test Page and automated JSON test runner in OrkinosaiCMS. This feature is designed for R&D, prototyping, and pre-production testing, and should be disabled in production environments.
 
+## Test Files Location
+
+Test files are stored in the `tests/zoota-tests` folder in the repository. The test runner automatically loads all `.json` files from this folder and displays them for selection.
+
+### Pre-included Test Files
+
+The repository includes sample test files:
+- `sample-test.json` - Basic test example with page creation and content verification
+- `smoke-test.json` - Comprehensive smoke test with multiple operations
+
+You can add your own test files to this folder to expand your test suite.
+
 ## Configuration
 
 ### appsettings.json
@@ -64,23 +76,34 @@ Disable this feature when:
 
 When enabled, the Zoota Test Page provides:
 
-### 1. JSON Test File Upload
-- Upload `.json` files containing test suites
+### 1. Test File Selection
+- Browse and select test files from the `tests/zoota-tests` folder
+- Multiple file selection with checkboxes
+- "Select All" option to quickly select all available tests
+- Clear selection button
+- View test descriptions loaded from JSON files
+
+### 2. JSON Test File Upload
+- Upload custom `.json` files containing test suites
+- Alternative to using pre-defined test files
 - Preview uploaded test configuration
 - Validate test structure before execution
 
-### 2. Automated Test Execution
-- Execute test steps sequentially
+### 3. Automated Test Execution
+- Execute multiple test files in sequence
+- Run selected tests with a single click
 - Real-time progress updates
 - Detailed logging for each step
+- Shows which file each test step came from
 
-### 3. Test Results Reporting
+### 4. Test Results Reporting
 - Pass/Fail status for each test
 - Summary statistics (total, passed, failed)
 - Detailed error messages and diagnostics
 - Visual result indicators
+- Source file tracking for each result
 
-### 4. Supported Test Actions
+### 5. Supported Test Actions
 
 The test runner currently supports these actions:
 

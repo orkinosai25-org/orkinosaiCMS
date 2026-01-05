@@ -1,0 +1,31 @@
+{
+  "testSuite": "Stage 1 CMS Smoke Tests",
+  "steps": [
+    {
+      "action": "createPage",
+      "params": { "name": "DemoTestPage" },
+      "expect": { "created": true }
+    },
+    {
+      "action": "addContent",
+      "params": { 
+        "pageName": "DemoTestPage", 
+        "content": "Welcome to the CMS!" 
+      },
+      "expect": { "contentExists": true }
+    },
+    {
+      "action": "uploadImage",
+      "params": { 
+        "pageName": "DemoTestPage", 
+        "imagePath": "test-image.png" 
+      },
+      "expect": { "imageExists": true }
+    },
+    {
+      "action": "verifyContent",
+      "params": { "pageName": "DemoTestPage" },
+      "expect": { "contentExists": true }
+    }
+  ]
+}
