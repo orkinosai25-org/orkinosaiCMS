@@ -1137,13 +1137,14 @@ else
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<CreatePageResponse>();
+                var pagePath = result?.Data?.Path ?? "unknown";
                 
                 return new TestResult
                 {
                     Action = "createPage",
                     Passed = true,
                     Message = $"Successfully created page: {pageName}",
-                    Details = $"Page created with routing at '/{result?.Data?.Path ?? pageName.ToLower()}' and added to navigation"
+                    Details = $"Page created with routing at '/{pagePath}' and added to navigation (ShowInNavigation: {result?.Data?.ShowInNavigation ?? true})"
                 };
             }
             else
