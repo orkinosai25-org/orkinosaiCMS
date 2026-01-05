@@ -48,7 +48,9 @@ public class DatabaseConfigurationTests
     [InlineData("   ", false, "Whitespace-only connection string is invalid")]
     [InlineData("Server=(localdb)\\mssqllocaldb;Database=Test", false, "LocalDB is not valid for production")]
     [InlineData("Data Source=orkinosai-cms.db", false, "SQLite connection string is not valid for production")]
+    [InlineData("Data Source=:memory:", false, "SQLite in-memory connection string is not valid for production")]
     [InlineData("Server=tcp:server.database.windows.net;Database=mydb;User ID=admin;Password=pass", true, "Valid Azure SQL connection string")]
+    [InlineData("Data Source=server.database.windows.net;Initial Catalog=mydb;User ID=admin;Password=pass", true, "Valid SQL Server connection string with Data Source")]
     public void ValidateProductionConnectionString_RejectsInvalidConnectionStrings(
         string connectionString, bool isValid, string reason)
     {
@@ -56,7 +58,7 @@ public class DatabaseConfigurationTests
         // Production connection strings must:
         // - Not be empty or whitespace
         // - Not contain LocalDB references
-        // - Not be SQLite connection strings
+        // - Not be SQLite connection strings (check for .db file extension or :memory:)
         
         bool connectionStringIsValid = true;
         
@@ -68,9 +70,10 @@ public class DatabaseConfigurationTests
         {
             connectionStringIsValid = false;
         }
-        else if (connectionString.Contains("orkinosai-cms.db", StringComparison.OrdinalIgnoreCase) ||
-                 connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+        else if (connectionString.Contains(".db", StringComparison.OrdinalIgnoreCase) ||
+                 connectionString.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
         {
+            // SQLite connection strings contain .db file extensions or :memory:
             connectionStringIsValid = false;
         }
         
