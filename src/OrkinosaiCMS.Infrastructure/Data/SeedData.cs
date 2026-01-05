@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -33,38 +34,31 @@ public static class SeedData
             
             if (isSqlite)
             {
-                // For SQLite, delete and recreate the database as the migrations were created for SQL Server
-                // and contain SQL Server-specific syntax that's incompatible with SQLite
-                // SAFETY: Only delete database in Development environment to prevent data loss in production
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-                var isDevelopment = environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+                // For SQLite, check if database exists and create if needed
+                // AVOID calling EnsureDeletedAsync() as it can fail if database is locked by another process
+                logger.LogInformation("SQLite detected. Checking database schema...");
                 
-                if (isDevelopment)
+                // Check if tables exist by attempting to query a core table
+                bool databaseExists = false;
+                try
                 {
-                    logger.LogInformation("SQLite detected in Development environment. Ensuring fresh database...");
-                    await context.Database.EnsureDeletedAsync();
+                    // Try to query the Sites table - if it exists, database is already initialized
+                    await context.Sites.AnyAsync();
+                    databaseExists = true;
+                    logger.LogInformation("Database already exists with valid schema.");
+                }
+                catch (Exception ex) when (ex is SqliteException || ex is InvalidOperationException)
+                {
+                    // Table doesn't exist or database is not accessible, need to create the database
+                    logger.LogInformation("Database does not exist or is incomplete: {Message}", ex.Message);
+                    databaseExists = false;
+                }
+                
+                if (!databaseExists)
+                {
+                    logger.LogInformation("Creating database schema...");
                     await context.Database.EnsureCreatedAsync();
                     logger.LogInformation("Database schema created successfully");
-                }
-                else
-                {
-                    // In production/staging, check if database exists and only create if it doesn't
-                    logger.LogInformation("SQLite detected in {Environment} environment. Creating database schema if not exists...", environment);
-                    
-                    // Check if tables exist by attempting to query a core table
-                    try
-                    {
-                        // Try to query the Sites table - if it exists, database is already initialized
-                        await context.Sites.AnyAsync();
-                        logger.LogInformation("Database already exists with valid schema. Skipping creation.");
-                    }
-                    catch (Microsoft.Data.Sqlite.SqliteException)
-                    {
-                        // Table doesn't exist, create the database
-                        logger.LogInformation("Database does not exist or is incomplete. Creating schema...");
-                        await context.Database.EnsureCreatedAsync();
-                        logger.LogInformation("Database schema created successfully");
-                    }
                 }
             }
             else
