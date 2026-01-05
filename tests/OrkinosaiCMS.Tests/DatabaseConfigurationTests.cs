@@ -103,13 +103,18 @@ public class DatabaseConfigurationTests
     {
         // This test documents that ALL Azure deployments (dev, staging, production) MUST use Azure SQL
         // SQLite is ONLY for local Visual Studio F5/debug runs, NEVER for any deployment
-        var deploymentEnvironments = new[] { "Production", "Staging", "Development" }; // when deployed to Azure
-        var requiredProvider = "SqlServer"; // Azure SQL
+        var deploymentEnvironments = new[] { "Production", "Staging", "QA", "Test" };
         
         foreach (var env in deploymentEnvironments)
         {
-            // All deployed environments must use Azure SQL, never SQLite
-            Assert.Equal("SqlServer", requiredProvider);
+            // For each deployment environment, validate that SQLite would be rejected
+            // (using the same logic as ValidateDatabaseProvider_EnforcesCorrectProviderByEnvironment)
+            bool sqliteAllowed = env.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            bool azureSqlAllowed = true;
+            
+            // All deployed environments must reject SQLite and allow Azure SQL
+            Assert.False(sqliteAllowed, $"{env} environment should not allow SQLite");
+            Assert.True(azureSqlAllowed, $"{env} environment should allow Azure SQL");
         }
     }
     

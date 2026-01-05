@@ -87,7 +87,7 @@ var configLogger = LoggerFactory.Create(config => config.AddConsole()).CreateLog
 // ALL Azure deployments (including dev deployments) MUST use Azure SQL
 if (databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
 {
-    // SQLite detected - only allow in Development environment with explicit local indicators
+    // SQLite detected - only allow in Development environment
     if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
     {
         // This is acceptable for local F5/debug runs
