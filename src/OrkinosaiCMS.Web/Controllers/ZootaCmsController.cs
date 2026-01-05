@@ -17,17 +17,20 @@ public class ZootaCmsController : ControllerBase
     private readonly IPageService _pageService;
     private readonly IContentService _contentService;
     private readonly IUserService _userService;
+    private readonly IPageLayoutService _pageLayoutService;
     private readonly ILogger<ZootaCmsController> _logger;
 
     public ZootaCmsController(
         IPageService pageService,
         IContentService contentService,
         IUserService userService,
+        IPageLayoutService pageLayoutService,
         ILogger<ZootaCmsController> logger)
     {
         _pageService = pageService;
         _contentService = contentService;
         _userService = userService;
+        _pageLayoutService = pageLayoutService;
         _logger = logger;
     }
 
@@ -347,6 +350,278 @@ public class ZootaCmsController : ControllerBase
 
     #endregion
 
+    #region Page Designer
+
+    /// <summary>
+    /// Apply a layout template to a page
+    /// </summary>
+    [HttpPost("pages/{pageId}/layout/template")]
+    public async Task<IActionResult> ApplyTemplate(int pageId, [FromBody] ApplyTemplateRequest request)
+    {
+        try
+        {
+            var page = await _pageService.GetByIdAsync(pageId);
+            if (page == null)
+            {
+                return NotFound(new { success = false, message = "Page not found" });
+            }
+
+            var layout = await _pageLayoutService.ApplyTemplateAsync(pageId, request.TemplateName);
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Template '{request.TemplateName}' applied to page '{page.Title}'",
+                data = new { layoutId = layout.Id, pageId, template = request.TemplateName }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying template");
+            return StatusCode(500, new { success = false, message = "Error applying template" });
+        }
+    }
+
+    /// <summary>
+    /// Get the layout for a page
+    /// </summary>
+    [HttpGet("pages/{pageId}/layout")]
+    public async Task<IActionResult> GetPageLayout(int pageId)
+    {
+        try
+        {
+            var layout = await _pageLayoutService.GetLayoutByPageIdAsync(pageId);
+            if (layout == null)
+            {
+                return NotFound(new { success = false, message = "Layout not found for this page" });
+            }
+
+            var sections = await _pageLayoutService.GetSectionsByLayoutIdAsync(layout.Id);
+            var sectionData = new List<object>();
+
+            foreach (var section in sections)
+            {
+                var blocks = await _pageLayoutService.GetBlocksBySectionIdAsync(section.Id);
+                sectionData.Add(new
+                {
+                    section.Id,
+                    section.Order,
+                    section.SectionType,
+                    blocks = blocks.Select(b => new
+                    {
+                        b.Id,
+                        b.BlockType,
+                        b.ColumnIndex,
+                        b.Order,
+                        b.Content
+                    })
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    layoutId = layout.Id,
+                    pageId = layout.PageId,
+                    sections = sectionData
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting page layout");
+            return StatusCode(500, new { success = false, message = "Error retrieving page layout" });
+        }
+    }
+
+    /// <summary>
+    /// Add a section to a page layout
+    /// </summary>
+    [HttpPost("pages/{pageId}/layout/sections")]
+    public async Task<IActionResult> AddSection(int pageId, [FromBody] AddSectionRequest request)
+    {
+        try
+        {
+            var page = await _pageService.GetByIdAsync(pageId);
+            if (page == null)
+            {
+                return NotFound(new { success = false, message = "Page not found" });
+            }
+
+            var layout = await _pageLayoutService.GetLayoutByPageIdAsync(pageId);
+            if (layout == null)
+            {
+                layout = await _pageLayoutService.CreateLayoutAsync(new PageLayout
+                {
+                    PageId = pageId,
+                    IsActive = true
+                });
+            }
+
+            var existingSections = await _pageLayoutService.GetSectionsByLayoutIdAsync(layout.Id);
+
+            var section = new PageSection
+            {
+                PageLayoutId = layout.Id,
+                Order = existingSections.Count(),
+                SectionType = request.SectionType ?? "full-width",
+                ColumnConfiguration = GetColumnConfiguration(request.SectionType ?? "full-width")
+            };
+
+            var created = await _pageLayoutService.CreateSectionAsync(section);
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Section added to page '{page.Title}'",
+                data = new { sectionId = created.Id, created.SectionType, created.Order }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding section");
+            return StatusCode(500, new { success = false, message = "Error adding section" });
+        }
+    }
+
+    /// <summary>
+    /// Add a block to a section
+    /// </summary>
+    [HttpPost("pages/{pageId}/layout/sections/{sectionId}/blocks")]
+    public async Task<IActionResult> AddBlock(int pageId, int sectionId, [FromBody] AddBlockRequest request)
+    {
+        try
+        {
+            var section = await _pageLayoutService.GetSectionsByLayoutIdAsync(0); // Get section by ID
+            var targetSection = section.FirstOrDefault(s => s.Id == sectionId);
+            
+            if (targetSection == null)
+            {
+                return NotFound(new { success = false, message = "Section not found" });
+            }
+
+            var existingBlocks = await _pageLayoutService.GetBlocksBySectionIdAsync(sectionId);
+            var columnBlocks = existingBlocks.Where(b => b.ColumnIndex == (request.ColumnIndex ?? 0));
+
+            var block = new PageBlock
+            {
+                PageSectionId = sectionId,
+                ColumnIndex = request.ColumnIndex ?? 0,
+                Order = columnBlocks.Count(),
+                BlockType = request.BlockType,
+                Content = request.Content ?? GetDefaultBlockContent(request.BlockType)
+            };
+
+            var created = await _pageLayoutService.CreateBlockAsync(block);
+
+            return Ok(new
+            {
+                success = true,
+                message = $"{request.BlockType} block added to section",
+                data = new { blockId = created.Id, created.BlockType, created.ColumnIndex }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding block");
+            return StatusCode(500, new { success = false, message = "Error adding block" });
+        }
+    }
+
+    /// <summary>
+    /// Update block content
+    /// </summary>
+    [HttpPut("pages/{pageId}/layout/blocks/{blockId}")]
+    public async Task<IActionResult> UpdateBlock(int pageId, int blockId, [FromBody] UpdateBlockRequest request)
+    {
+        try
+        {
+            var sections = await _pageLayoutService.GetSectionsByLayoutIdAsync(0);
+            PageBlock? block = null;
+
+            foreach (var section in sections)
+            {
+                var blocks = await _pageLayoutService.GetBlocksBySectionIdAsync(section.Id);
+                block = blocks.FirstOrDefault(b => b.Id == blockId);
+                if (block != null) break;
+            }
+
+            if (block == null)
+            {
+                return NotFound(new { success = false, message = "Block not found" });
+            }
+
+            if (!string.IsNullOrEmpty(request.Content))
+            {
+                block.Content = request.Content;
+            }
+
+            await _pageLayoutService.UpdateBlockAsync(block);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Block updated successfully",
+                data = new { blockId = block.Id, block.BlockType }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating block");
+            return StatusCode(500, new { success = false, message = "Error updating block" });
+        }
+    }
+
+    /// <summary>
+    /// Delete a block
+    /// </summary>
+    [HttpDelete("pages/{pageId}/layout/blocks/{blockId}")]
+    public async Task<IActionResult> DeleteBlock(int pageId, int blockId)
+    {
+        try
+        {
+            await _pageLayoutService.DeleteBlockAsync(blockId);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Block deleted successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting block");
+            return StatusCode(500, new { success = false, message = "Error deleting block" });
+        }
+    }
+
+    /// <summary>
+    /// Delete a section
+    /// </summary>
+    [HttpDelete("pages/{pageId}/layout/sections/{sectionId}")]
+    public async Task<IActionResult> DeleteSection(int pageId, int sectionId)
+    {
+        try
+        {
+            await _pageLayoutService.DeleteSectionAsync(sectionId);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Section deleted successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting section");
+            return StatusCode(500, new { success = false, message = "Error deleting section" });
+        }
+    }
+
+    #endregion
+
     #region Helpers
 
     private string GenerateSlug(string title)
@@ -364,6 +639,31 @@ public class ZootaCmsController : ControllerBase
         slug = slug.Trim('-');
         
         return slug;
+    }
+
+    private string GetColumnConfiguration(string sectionType)
+    {
+        return sectionType switch
+        {
+            "two-column" => "[{\"width\": \"50%\"}, {\"width\": \"50%\"}]",
+            "three-column" => "[{\"width\": \"33.33%\"}, {\"width\": \"33.33%\"}, {\"width\": \"33.33%\"}]",
+            _ => "[{\"width\": \"100%\"}]"
+        };
+    }
+
+    private string GetDefaultBlockContent(string blockType)
+    {
+        return blockType switch
+        {
+            "text" => "{\"html\": \"<p>Enter your text here</p>\"}",
+            "image" => "{\"src\": \"\", \"alt\": \"Image\"}",
+            "video" => "{\"url\": \"\"}",
+            "hero" => "{\"title\": \"Hero Title\", \"subtitle\": \"Subtitle\", \"imageUrl\": \"\"}",
+            "html" => "{\"html\": \"<div>Custom HTML</div>\"}",
+            "gallery" => "{\"images\": []}",
+            "cards" => "{\"title\": \"Card Title\", \"text\": \"Card content\", \"imageUrl\": \"\"}",
+            _ => "{}"
+        };
     }
 
     #endregion
@@ -399,6 +699,28 @@ public class UpdateContentRequest
 {
     public string? Title { get; set; }
     public string? Body { get; set; }
+}
+
+public class ApplyTemplateRequest
+{
+    public string TemplateName { get; set; } = string.Empty;
+}
+
+public class AddSectionRequest
+{
+    public string? SectionType { get; set; }
+}
+
+public class AddBlockRequest
+{
+    public string BlockType { get; set; } = string.Empty;
+    public int? ColumnIndex { get; set; }
+    public string? Content { get; set; }
+}
+
+public class UpdateBlockRequest
+{
+    public string? Content { get; set; }
 }
 
 #endregion

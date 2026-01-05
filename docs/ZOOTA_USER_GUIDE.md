@@ -16,18 +16,26 @@ Zoota is an AI-powered chat assistant integrated into OrkinosaiCMS to help admin
    - Delete pages when no longer needed
    - List and search through all pages
 
-2. **Content Management**
+2. **Visual Page Designer** 🎨 NEW!
+   - Design pages conversationally with layouts and blocks
+   - Apply templates (hero, gallery, text+image, cards)
+   - Add content blocks (text, images, videos, HTML)
+   - Generate content for blocks
+   - Manage sections and columns
+   - See [Zoota Page Designer Guide](ZOOTA_PAGE_DESIGNER.md)
+
+3. **Content Management**
    - Create and organize content items
    - Update content body and metadata
    - Delete outdated content
    - Browse content library
 
-3. **Navigation & Search**
+4. **Navigation & Search**
    - Search across CMS content
    - Navigate to specific admin sections
    - Find pages, content, and media quickly
 
-4. **AI-Powered Suggestions**
+5. **AI-Powered Suggestions**
    - Get recommendations for content structure
    - Receive best practices for CMS usage
    - Troubleshoot common issues
