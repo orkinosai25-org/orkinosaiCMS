@@ -1,0 +1,23 @@
+{
+  "testSuite": "Sample CMS Test",
+  "steps": [
+    {
+      "action": "createPage",
+      "params": { "name": "SampleTestPage" },
+      "expect": { "created": true }
+    },
+    {
+      "action": "addContent",
+      "params": { 
+        "pageName": "SampleTestPage", 
+        "content": "This is a sample test content" 
+      },
+      "expect": { "contentExists": true }
+    },
+    {
+      "action": "verifyContent",
+      "params": { "pageName": "SampleTestPage" },
+      "expect": { "contentExists": true }
+    }
+  ]
+}

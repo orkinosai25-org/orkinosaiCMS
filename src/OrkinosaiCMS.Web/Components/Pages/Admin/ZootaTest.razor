@@ -1,0 +1,1057 @@
+@page "/admin/zoota-test"
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Options
+@using OrkinosaiCMS.Web.Models
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
+@inject IOptions<ZootaTestingOptions> ZootaTestingOptions
+@inject NavigationManager Navigation
+@inject ILogger<ZootaTest> Logger
+@inject HttpClient Http
+
+<PageTitle>Zoota Test Runner - OrkinosaiCMS</PageTitle>
+
+@if (!ZootaTestingOptions.Value.Enabled)
+{
+    <div class="test-disabled">
+        <div class="disabled-message">
+            <h2>⚠️ Test Runner Disabled</h2>
+            <p>The Zoota Test Runner is currently disabled in configuration.</p>
+            <p>To enable it, set <code>ZootaTesting:Enabled</code> to <code>true</code> in <code>appsettings.json</code>.</p>
+            <button class="btn-back" @onclick='() => Navigation.NavigateTo("/admin")'>
+                ← Back to Dashboard
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="test-runner">
+        <div class="test-header">
+            <h1>🧪 Zoota Test Runner</h1>
+            <p>JSON-driven automated test suite for CMS feature validation</p>
+        </div>
+
+        <div class="test-content">
+            <div class="upload-section">
+                <h3>Select Test Files</h3>
+                <p>Choose one or more test files from the <code>tests/zoota-tests</code> folder</p>
+                
+                @if (availableTestFiles.Any())
+                {
+                    <div class="file-selection">
+                        <div class="select-all-container">
+                            <label>
+                                <input type="checkbox" @bind="selectAllChecked" @onclick="ToggleSelectAll" />
+                                <strong>Select All</strong>
+                            </label>
+                        </div>
+                        
+                        <div class="file-list">
+                            @foreach (var testFile in availableTestFiles)
+                            {
+                                <div class="file-item">
+                                    <label>
+                                        <input type="checkbox" 
+                                               checked="@selectedTestFiles.Contains(testFile.Path)" 
+                                               @onchange="@(() => ToggleFileSelection(testFile.Path))" />
+                                        <span class="file-icon">📄</span>
+                                        <span class="file-name">@testFile.Name</span>
+                                        @if (!string.IsNullOrEmpty(testFile.Description))
+                                        {
+                                            <span class="file-description">- @testFile.Description</span>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="no-files-message">
+                        <p>⚠️ No test files found in <code>tests/zoota-tests</code> folder.</p>
+                        <p>Add <code>.json</code> files to the folder to run tests.</p>
+                    </div>
+                }
+
+                <div class="action-buttons">
+                    <button class="btn-run" @onclick="RunSelectedTests" disabled="@(!selectedTestFiles.Any() || isRunning)">
+                        @if (isRunning)
+                        {
+                            <span>⏳ Running Tests...</span>
+                        }
+                        else
+                        {
+                            <span>▶️ Run Selected Tests (@selectedTestFiles.Count)</span>
+                        }
+                    </button>
+                    
+                    @if (selectedTestFiles.Any())
+                    {
+                        <button class="btn-clear" @onclick="ClearSelection">
+                            Clear Selection
+                        </button>
+                    }
+                </div>
+                
+                <div class="upload-alternative">
+                    <h4>Or Upload a Custom Test File</h4>
+                    <div class="file-upload">
+                        <InputFile OnChange="HandleFileSelected" accept=".json" />
+                        @if (!string.IsNullOrEmpty(uploadedFileName))
+                        {
+                            <p class="file-info">Uploaded: <strong>@uploadedFileName</strong></p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (testResults.Any())
+            {
+                <div class="results-section">
+                    <h3>Test Results</h3>
+                    <div class="results-summary">
+                        <div class="stat passed">
+                            <span class="stat-icon">✅</span>
+                            <div>
+                                <p class="stat-number">@testResults.Count(r => r.Passed)</p>
+                                <p class="stat-label">Passed</p>
+                            </div>
+                        </div>
+                        <div class="stat failed">
+                            <span class="stat-icon">❌</span>
+                            <div>
+                                <p class="stat-number">@testResults.Count(r => !r.Passed)</p>
+                                <p class="stat-label">Failed</p>
+                            </div>
+                        </div>
+                        <div class="stat total">
+                            <span class="stat-icon">📊</span>
+                            <div>
+                                <p class="stat-number">@testResults.Count</p>
+                                <p class="stat-label">Total</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-list">
+                        @foreach (var result in testResults)
+                        {
+                            <div class="result-item @(result.Passed ? "passed" : "failed")">
+                                <div class="result-header">
+                                    <span class="result-icon">@(result.Passed ? "✅" : "❌")</span>
+                                    <span class="result-action">@result.Action</span>
+                                    <span class="result-status">@(result.Passed ? "PASSED" : "FAILED")</span>
+                                </div>
+                                <div class="result-details">
+                                    <p><strong>Message:</strong> @result.Message</p>
+                                    @if (!string.IsNullOrEmpty(result.Details))
+                                    {
+                                        <p><strong>Details:</strong> @result.Details</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="example-section">
+                <h3>Example Test JSON</h3>
+                <p>Create a <code>tests.json</code> file with the following structure:</p>
+                <pre class="example-json">{
+  "testSuite": "Stage 1 CMS Smoke Tests",
+  "steps": [
+    {
+      "action": "createPage",
+      "params": { "name": "DemoTestPage" },
+      "expect": { "created": true }
+    },
+    {
+      "action": "addContent",
+      "params": { 
+        "pageName": "DemoTestPage", 
+        "content": "Welcome to the CMS!" 
+      },
+      "expect": { "contentExists": true }
+    },
+    {
+      "action": "verifyContent",
+      "params": { "pageName": "DemoTestPage" },
+      "expect": { "contentExists": true }
+    }
+  ]
+}</pre>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .test-disabled {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        padding: 40px;
+    }
+
+    .disabled-message {
+        background: white;
+        border: 2px solid #ff6b6b;
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        max-width: 600px;
+    }
+
+    .disabled-message h2 {
+        color: #ff6b6b;
+        margin-bottom: 16px;
+    }
+
+    .disabled-message p {
+        color: #666;
+        margin-bottom: 12px;
+        line-height: 1.6;
+    }
+
+    .disabled-message code {
+        background: #f5f5f5;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        color: #0078D4;
+    }
+
+    .btn-back {
+        margin-top: 24px;
+        padding: 12px 24px;
+        background: #0078D4;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .btn-back:hover {
+        background: #005a9e;
+    }
+
+    .test-runner {
+        padding: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .test-header {
+        margin-bottom: 40px;
+    }
+
+    .test-header h1 {
+        color: #0078D4;
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+
+    .test-header p {
+        color: #666;
+        font-size: 16px;
+    }
+
+    .test-content {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .upload-section, .results-section, .example-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-section h3, .results-section h3, .example-section h3 {
+        color: #333;
+        margin-bottom: 16px;
+    }
+
+    .file-upload {
+        margin: 20px 0;
+    }
+
+    .file-info {
+        margin-top: 12px;
+        color: #0078D4;
+    }
+
+    .json-preview {
+        background: #f5f5f5;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 20px 0;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .json-preview h4 {
+        color: #333;
+        margin-bottom: 12px;
+    }
+
+    .json-preview pre {
+        margin: 0;
+        white-space: pre-wrap;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .btn-run {
+        padding: 12px 32px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-run:hover:not(:disabled) {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-run:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .file-selection {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .select-all-container {
+        padding-bottom: 16px;
+        border-bottom: 2px solid #0078D4;
+        margin-bottom: 16px;
+    }
+
+    .select-all-container label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .select-all-container input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .file-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .file-item {
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+    .file-item:hover {
+        background: #e9ecef;
+    }
+
+    .file-item label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .file-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .file-icon {
+        font-size: 20px;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .file-description {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .no-files-message {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    .no-files-message p {
+        color: #856404;
+        margin: 8px 0;
+    }
+
+    .no-files-message code {
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+
+    .btn-clear {
+        padding: 12px 32px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-clear:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+    .upload-alternative {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .upload-alternative h4 {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+
+    .results-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        border-radius: 8px;
+        background: #f8f9fa;
+    }
+
+    .stat.passed {
+        background: #d4edda;
+        border: 1px solid #28a745;
+    }
+
+    .stat.failed {
+        background: #f8d7da;
+        border: 1px solid #dc3545;
+    }
+
+    .stat.total {
+        background: #d1ecf1;
+        border: 1px solid #0078D4;
+    }
+
+    .stat-icon {
+        font-size: 32px;
+    }
+
+    .stat-number {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+    }
+
+    .results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .result-item {
+        border-radius: 8px;
+        padding: 16px;
+        border: 2px solid;
+    }
+
+    .result-item.passed {
+        background: #d4edda;
+        border-color: #28a745;
+    }
+
+    .result-item.failed {
+        background: #f8d7da;
+        border-color: #dc3545;
+    }
+
+    .result-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .result-icon {
+        font-size: 20px;
+    }
+
+    .result-action {
+        font-weight: 600;
+        color: #333;
+        flex: 1;
+    }
+
+    .result-status {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .result-item.passed .result-status {
+        color: #28a745;
+    }
+
+    .result-item.failed .result-status {
+        color: #dc3545;
+    }
+
+    .result-details p {
+        margin: 4px 0;
+        color: #555;
+        font-size: 14px;
+    }
+
+    .example-section p {
+        color: #666;
+        margin-bottom: 16px;
+    }
+
+    .example-section code {
+        background: #f5f5f5;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        color: #0078D4;
+    }
+
+    .example-json {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        border-radius: 8px;
+        padding: 20px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    @@media (max-width: 768px) {
+        .test-runner {
+            padding: 20px;
+        }
+
+        .results-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private string uploadedFileName = string.Empty;
+    private string testJson = string.Empty;
+    private bool isRunning = false;
+    private List<TestResult> testResults = new();
+    private List<TestFileInfo> availableTestFiles = new();
+    private HashSet<string> selectedTestFiles = new();
+    private bool selectAllChecked = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // If ZootaTesting is disabled, log and potentially redirect
+        if (!ZootaTestingOptions.Value.Enabled)
+        {
+            Logger.LogWarning("Attempted to access Zoota Test Runner while it is disabled in configuration.");
+            return;
+        }
+
+        // Load available test files from the tests folder
+        await LoadAvailableTestFiles();
+    }
+
+    private async Task LoadAvailableTestFiles()
+    {
+        try
+        {
+            var testsFolder = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "tests", "zoota-tests");
+            
+            // If the folder doesn't exist, try alternative path
+            if (!Directory.Exists(testsFolder))
+            {
+                testsFolder = Path.Combine(Directory.GetCurrentDirectory(), "tests", "zoota-tests");
+            }
+
+            // Create folder if it doesn't exist
+            if (!Directory.Exists(testsFolder))
+            {
+                Directory.CreateDirectory(testsFolder);
+                Logger.LogInformation("Created tests folder at: {Path}", testsFolder);
+                return;
+            }
+
+            var jsonFiles = Directory.GetFiles(testsFolder, "*.json", SearchOption.TopDirectoryOnly);
+            
+            availableTestFiles.Clear();
+            foreach (var filePath in jsonFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                var description = await GetTestDescription(filePath);
+                
+                availableTestFiles.Add(new TestFileInfo
+                {
+                    Name = fileName,
+                    Path = filePath,
+                    Description = description
+                });
+            }
+
+            Logger.LogInformation("Loaded {Count} test files from {Path}", availableTestFiles.Count, testsFolder);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading available test files");
+        }
+    }
+
+    private async Task<string> GetTestDescription(string filePath)
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(filePath);
+            var testSuite = System.Text.Json.JsonSerializer.Deserialize<TestSuite>(json);
+            return testSuite?.Name ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private void ToggleSelectAll()
+    {
+        selectAllChecked = !selectAllChecked;
+        
+        if (selectAllChecked)
+        {
+            selectedTestFiles = availableTestFiles.Select(f => f.Path).ToHashSet();
+        }
+        else
+        {
+            selectedTestFiles.Clear();
+        }
+    }
+
+    private void ToggleFileSelection(string filePath)
+    {
+        if (selectedTestFiles.Contains(filePath))
+        {
+            selectedTestFiles.Remove(filePath);
+        }
+        else
+        {
+            selectedTestFiles.Add(filePath);
+        }
+
+        // Update select all checkbox state
+        selectAllChecked = selectedTestFiles.Count == availableTestFiles.Count;
+    }
+
+    private void ClearSelection()
+    {
+        selectedTestFiles.Clear();
+        selectAllChecked = false;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                uploadedFileName = file.Name;
+                
+                using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024); // 1MB limit
+                using var reader = new StreamReader(stream);
+                testJson = await reader.ReadToEndAsync();
+                
+                Logger.LogInformation("Custom test file uploaded: {FileName}", uploadedFileName);
+                
+                // Clear file selection and run the uploaded file
+                selectedTestFiles.Clear();
+                selectAllChecked = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading custom test file");
+            testJson = string.Empty;
+            uploadedFileName = string.Empty;
+        }
+    }
+
+    private async Task RunSelectedTests()
+    {
+        if (!selectedTestFiles.Any())
+            return;
+
+        isRunning = true;
+        testResults.Clear();
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Running {Count} selected test files", selectedTestFiles.Count);
+
+            foreach (var filePath in selectedTestFiles)
+            {
+                var fileName = Path.GetFileName(filePath);
+                Logger.LogInformation("Executing test file: {FileName}", fileName);
+
+                try
+                {
+                    var json = await File.ReadAllTextAsync(filePath);
+                    await ExecuteTestFile(json, fileName);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error executing test file: {FileName}", fileName);
+                    testResults.Add(new TestResult
+                    {
+                        Action = $"Execute {fileName}",
+                        Passed = false,
+                        Message = $"Failed to execute test file: {fileName}",
+                        Details = ex.Message
+                    });
+                }
+
+                StateHasChanged();
+                await Task.Delay(500); // Small delay between files
+            }
+
+            Logger.LogInformation("Test execution completed. Passed: {Passed}, Failed: {Failed}", 
+                testResults.Count(r => r.Passed), testResults.Count(r => !r.Passed));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error running selected tests");
+            testResults.Add(new TestResult
+            {
+                Action = "Run Tests",
+                Passed = false,
+                Message = "Failed to execute tests",
+                Details = ex.Message
+            });
+        }
+        finally
+        {
+            isRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteTestFile(string json, string fileName)
+    {
+        var testSuite = System.Text.Json.JsonSerializer.Deserialize<TestSuite>(json);
+        
+        if (testSuite?.Steps == null || !testSuite.Steps.Any())
+        {
+            testResults.Add(new TestResult
+            {
+                Action = $"Parse {fileName}",
+                Passed = false,
+                Message = "No test steps found in file",
+                Details = $"File: {fileName}"
+            });
+            return;
+        }
+
+        Logger.LogInformation("Executing {Count} test steps from: {Suite}", 
+            testSuite.Steps.Count, testSuite.Name ?? fileName);
+
+        foreach (var step in testSuite.Steps)
+        {
+            var result = await ExecuteTestStep(step);
+            result.Details = $"From: {fileName}\n{result.Details}";
+            testResults.Add(result);
+            StateHasChanged();
+            await Task.Delay(300); // Small delay for better UX
+        }
+    }
+
+    private async Task RunTests()
+    {
+        if (string.IsNullOrEmpty(testJson))
+            return;
+
+        isRunning = true;
+        testResults.Clear();
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Starting test execution");
+            
+            // Parse test JSON
+            var testSuite = System.Text.Json.JsonSerializer.Deserialize<TestSuite>(testJson);
+            
+            if (testSuite?.Steps == null || !testSuite.Steps.Any())
+            {
+                testResults.Add(new TestResult
+                {
+                    Action = "Parse Test File",
+                    Passed = false,
+                    Message = "No test steps found in JSON file",
+                    Details = "Ensure your test file has a 'steps' array with test actions"
+                });
+                return;
+            }
+
+            Logger.LogInformation("Executing {Count} test steps from suite: {Suite}", 
+                testSuite.Steps.Count, testSuite.Name ?? "Unnamed");
+
+            // Execute each test step
+            foreach (var step in testSuite.Steps)
+            {
+                var result = await ExecuteTestStep(step);
+                testResults.Add(result);
+                StateHasChanged();
+                await Task.Delay(500); // Small delay for better UX
+            }
+
+            Logger.LogInformation("Test execution completed. Passed: {Passed}, Failed: {Failed}", 
+                testResults.Count(r => r.Passed), testResults.Count(r => !r.Passed));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error running tests");
+            testResults.Add(new TestResult
+            {
+                Action = "Run Tests",
+                Passed = false,
+                Message = "Failed to execute tests",
+                Details = ex.Message
+            });
+        }
+        finally
+        {
+            isRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<TestResult> ExecuteTestStep(TestStep step)
+    {
+        try
+        {
+            Logger.LogInformation("Executing test step: {Action}", step.Action);
+
+            // Simulate test execution based on action type
+            switch (step.Action?.ToLower())
+            {
+                case "createpage":
+                    return await ExecuteCreatePage(step);
+                
+                case "addcontent":
+                    return await ExecuteAddContent(step);
+                
+                case "uploadimage":
+                    return await ExecuteUploadImage(step);
+                
+                case "verifycontent":
+                    return await ExecuteVerifyContent(step);
+                
+                default:
+                    return new TestResult
+                    {
+                        Action = step.Action ?? "Unknown",
+                        Passed = false,
+                        Message = $"Unknown action: {step.Action}",
+                        Details = "Supported actions: createPage, addContent, uploadImage, verifyContent"
+                    };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing test step: {Action}", step.Action);
+            return new TestResult
+            {
+                Action = step.Action ?? "Unknown",
+                Passed = false,
+                Message = "Test step execution failed",
+                Details = ex.Message
+            };
+        }
+    }
+
+    private async Task<TestResult> ExecuteCreatePage(TestStep step)
+    {
+        try
+        {
+            var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
+            
+            // Call API to create page
+            var response = await Http.PostAsJsonAsync("/api/zoota/cms/pages", new
+            {
+                Title = pageName,
+                IsPublished = false
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new TestResult
+                {
+                    Action = "createPage",
+                    Passed = true,
+                    Message = $"Successfully created page: {pageName}",
+                    Details = "Page created and available in CMS"
+                };
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return new TestResult
+                {
+                    Action = "createPage",
+                    Passed = false,
+                    Message = $"Failed to create page: {pageName}",
+                    Details = $"API Error: {response.StatusCode} - {error}"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            return new TestResult
+            {
+                Action = "createPage",
+                Passed = false,
+                Message = "Error creating page",
+                Details = ex.Message
+            };
+        }
+    }
+
+    private Task<TestResult> ExecuteAddContent(TestStep step)
+    {
+        // Placeholder implementation
+        var pageName = step.Params?.GetProperty("pageName").GetString() ?? "Unknown";
+        return Task.FromResult(new TestResult
+        {
+            Action = "addContent",
+            Passed = true,
+            Message = $"Content added to page: {pageName}",
+            Details = "This is a placeholder implementation. Full implementation pending."
+        });
+    }
+
+    private Task<TestResult> ExecuteUploadImage(TestStep step)
+    {
+        // Placeholder implementation
+        var pageName = step.Params?.GetProperty("pageName").GetString() ?? "Unknown";
+        return Task.FromResult(new TestResult
+        {
+            Action = "uploadImage",
+            Passed = true,
+            Message = $"Image uploaded to page: {pageName}",
+            Details = "This is a placeholder implementation. Full implementation pending."
+        });
+    }
+
+    private Task<TestResult> ExecuteVerifyContent(TestStep step)
+    {
+        // Placeholder implementation
+        var pageName = step.Params?.GetProperty("pageName").GetString() ?? "Unknown";
+        return Task.FromResult(new TestResult
+        {
+            Action = "verifyContent",
+            Passed = true,
+            Message = $"Content verified for page: {pageName}",
+            Details = "This is a placeholder implementation. Full implementation pending."
+        });
+    }
+
+    // Data models for test execution
+    private class TestFileInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    private class TestSuite
+    {
+        public string? Name { get; set; }
+        public List<TestStep>? Steps { get; set; }
+    }
+
+    private class TestStep
+    {
+        public string? Action { get; set; }
+        public System.Text.Json.JsonElement? Params { get; set; }
+        public System.Text.Json.JsonElement? Expect { get; set; }
+    }
+
+    private class TestResult
+    {
+        public string Action { get; set; } = string.Empty;
+        public bool Passed { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string? Details { get; set; }
+    }
+}

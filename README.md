@@ -115,6 +115,7 @@ Visit `/cms-home` to see the demo website!
 
 ### AI & Automation
 - **[Zoota AI Assistant User Guide](docs/ZOOTA_USER_GUIDE.md)** - Complete guide for using the AI chat assistant
+- **[Zoota Testing Configuration](docs/ZOOTA_TESTING_CONFIG.md)** - Configure and use the Zoota Test Page for automated testing
 - **[AI Assistant Roadmap](docs/AI_ASSISTANT_ROADMAP.md)** - 12-month AI integration plan
 
 ### Roadmap & Planning

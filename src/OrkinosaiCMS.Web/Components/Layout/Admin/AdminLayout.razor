@@ -1,12 +1,15 @@
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Options
 @using OrkinosaiCMS.Web.Services
 @using OrkinosaiCMS.Web.Components.Shared
+@using OrkinosaiCMS.Web.Models
 @inject IAuthenticationService AuthService
 @inject IOqtaneAuthService OqtaneAuthService
 @inject NavigationManager NavigationManager
 @inject ILogger<AdminLayout> Logger
+@inject IOptions<ZootaTestingOptions> ZootaTestingOptions
 
 @* TODO: REMOVE THIS DEVELOPMENT BYPASS BEFORE PRODUCTION! *@
 @* FIXME: Authentication has been temporarily disabled for development convenience *@
@@ -60,6 +63,13 @@
                         <span class="nav-icon">⚙️</span>
                         Settings
                     </NavLink>
+                    @if (ZootaTestingOptions.Value.Enabled)
+                    {
+                        <NavLink href="/admin/zoota-test" class="nav-item">
+                            <span class="nav-icon">🧪</span>
+                            Zoota Test
+                        </NavLink>
+                    }
                 </nav>
                 <div class="admin-user">
                     <div class="user-info">
