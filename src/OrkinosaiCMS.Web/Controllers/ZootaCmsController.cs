@@ -77,6 +77,7 @@ public class ZootaCmsController : ControllerBase
                 Path = request.Path ?? GenerateSlug(request.Title),
                 MetaDescription = request.MetaDescription,
                 IsPublished = request.IsPublished ?? false,
+                ShowInNavigation = request.ShowInNavigation ?? true, // Default to showing in navigation
                 SiteId = 1, // Default site
                 CreatedBy = User.Identity?.Name ?? "admin",
                 CreatedOn = DateTime.UtcNow
@@ -87,8 +88,8 @@ public class ZootaCmsController : ControllerBase
             return Ok(new
             {
                 success = true,
-                message = $"Page '{created.Title}' created successfully",
-                data = new { created.Id, created.Title, created.Path }
+                message = $"Page '{created.Title}' created successfully with routing at '/{created.Path}' and navigation setup",
+                data = new { created.Id, created.Title, created.Path, created.ShowInNavigation, created.IsPublished }
             });
         }
         catch (Exception ex)
@@ -376,6 +377,7 @@ public class CreatePageRequest
     public string? Path { get; set; }
     public string? MetaDescription { get; set; }
     public bool? IsPublished { get; set; }
+    public bool? ShowInNavigation { get; set; }
 }
 
 public class UpdatePageRequest

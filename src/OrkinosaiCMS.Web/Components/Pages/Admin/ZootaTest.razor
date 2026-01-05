@@ -1126,21 +1126,24 @@ else
         {
             var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
             
-            // Call API to create page
+            // Call API to create page with routing and navigation setup
             var response = await Http.PostAsJsonAsync("/api/zoota/cms/pages", new
             {
                 Title = pageName,
-                IsPublished = false
+                IsPublished = false,
+                ShowInNavigation = true  // Ensure page is added to navigation
             });
 
             if (response.IsSuccessStatusCode)
             {
+                var result = await response.Content.ReadFromJsonAsync<CreatePageResponse>();
+                
                 return new TestResult
                 {
                     Action = "createPage",
                     Passed = true,
                     Message = $"Successfully created page: {pageName}",
-                    Details = "Page created and available in CMS"
+                    Details = $"Page created with routing at '/{result?.Data?.Path ?? pageName.ToLower()}' and added to navigation"
                 };
             }
             else
@@ -1225,6 +1228,22 @@ else
         public string? Action { get; set; }
         public System.Text.Json.JsonElement? Params { get; set; }
         public System.Text.Json.JsonElement? Expect { get; set; }
+    }
+
+    private class CreatePageResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public CreatePageData? Data { get; set; }
+    }
+
+    private class CreatePageData
+    {
+        public int Id { get; set; }
+        public string? Title { get; set; }
+        public string? Path { get; set; }
+        public bool ShowInNavigation { get; set; }
+        public bool IsPublished { get; set; }
     }
 
     private class TestResult
