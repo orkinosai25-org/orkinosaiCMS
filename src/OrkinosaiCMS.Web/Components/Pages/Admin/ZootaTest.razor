@@ -1128,8 +1128,7 @@ else
             
             // Call API to create page with routing and navigation setup
             // Use absolute URI by combining base URI with the API path
-            var baseUri = Navigation.BaseUri;
-            var apiUrl = new Uri(new Uri(baseUri), "/api/zoota/cms/pages").ToString();
+            var apiUrl = new Uri(new Uri(Navigation.BaseUri), "/api/zoota/cms/pages").ToString();
             var response = await Http.PostAsJsonAsync(apiUrl, new
             {
                 Title = pageName,
