@@ -17,7 +17,8 @@ A modern, modular Content Management System built on .NET 10 and Blazor, inspire
 ## 📋 Requirements
 
 - .NET 10 SDK
-- SQL Server 2019+ / LocalDB (Windows) / Azure SQL (for development and production)
+- **Local Development (F5/Debug)**: SQLite (automatically configured, no additional setup required)
+- **ALL Azure Deployments**: Azure SQL Database (dev, staging, production)
 - Visual Studio 2022 (17.12+) or Visual Studio 2026 (recommended)
 
 ## 🎯 Quick Start
@@ -35,9 +36,11 @@ cd orkinosaiCMS
 dotnet restore OrkinosaiCMS.sln
 ```
 
-### 3. Apply Database Migrations
+### 3. Database Setup
 
-Database is pre-configured with LocalDB for Windows. Apply the initial migration:
+#### Local Development (SQLite - F5/Debug Only)
+
+The application is **pre-configured to use SQLite** for local Visual Studio F5/debug runs. No additional database setup is required!
 
 ```bash
 # Install EF Core tools (first time only)
@@ -48,7 +51,22 @@ cd src/OrkinosaiCMS.Infrastructure
 dotnet ef database update --startup-project ../OrkinosaiCMS.Web
 ```
 
-For non-Windows or production setup, see [Database Guide](docs/DATABASE.md) and [Setup Guide](docs/SETUP.md).
+The SQLite database file (`orkinosai-cms-dev.db`) will be automatically created in the Web project directory.
+
+#### Azure Deployments (ALL Environments)
+
+**IMPORTANT**: ALL Azure deployments (including dev, staging, and production) **MUST use Azure SQL Database**:
+- SQLite is **ONLY for local F5/debug** and will cause startup failure if used in any deployment
+- Azure SQL connection string must be configured via Azure App Service Configuration
+- See [Azure Deployment Guide](docs/AZURE_DEPLOYMENT.md) for detailed setup instructions
+
+**Automated Configuration Validation**:
+- ✅ **Local Development**: Allows SQLite for Visual Studio F5/debug runs only
+- ✅ **ALL Deployments**: Enforces Azure SQL (blocks SQLite and LocalDB)
+- ✅ Logs configuration validation results on startup
+- ✅ Prevents deployment with invalid database configuration
+
+For detailed database configuration options, see [Database Guide](docs/DATABASE.md).
 
 ### 5. Run the Application
 
