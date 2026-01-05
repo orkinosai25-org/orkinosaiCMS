@@ -1,0 +1,639 @@
+@page "/admin/pages/designer/{pageId:int}"
+@page "/admin/pages/designer2/{pageId:int}"
+@rendermode InteractiveServer
+@layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
+@using OrkinosaiCMS.Core.Entities.Sites
+@using OrkinosaiCMS.Core.Interfaces.Services
+@inject IPageService PageService
+@inject IPageLayoutService PageLayoutService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Page Designer - OrkinosaiCMS Admin</PageTitle>
+
+<div class="page-designer">
+    <div class="designer-header">
+        <div class="designer-header-left">
+            <button class="btn-icon" @onclick="NavigateBack" title="Back to Pages">
+                ← Back
+            </button>
+            <h1>@(currentPage?.Title ?? "Page Designer")</h1>
+        </div>
+        <div class="designer-header-actions">
+            <button class="btn-secondary" @onclick="ShowPreview">
+                <span>👁️</span> Preview
+            </button>
+            <button class="btn-secondary" @onclick="SaveDraft">
+                <span>💾</span> Save Draft
+            </button>
+            <button class="btn-primary" @onclick="PublishPage">
+                <span>🚀</span> Publish
+            </button>
+        </div>
+    </div>
+
+    <div class="designer-main">
+        <!-- Block Toolbar -->
+        <div class="block-toolbar">
+            <h3>Add Blocks</h3>
+            <div class="block-templates">
+                <button class="template-btn" @onclick='() => ApplyTemplate("hero")'>
+                    <span class="template-icon">🎯</span>
+                    <span class="template-name">Hero</span>
+                </button>
+                <button class="template-btn" @onclick='() => ApplyTemplate("text-image")'>
+                    <span class="template-icon">📝🖼️</span>
+                    <span class="template-name">Text + Image</span>
+                </button>
+                <button class="template-btn" @onclick='() => ApplyTemplate("gallery")'>
+                    <span class="template-icon">🖼️</span>
+                    <span class="template-name">Gallery</span>
+                </button>
+                <button class="template-btn" @onclick='() => ApplyTemplate("cards")'>
+                    <span class="template-icon">🃏</span>
+                    <span class="template-name">Cards</span>
+                </button>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h3>Block Types</h3>
+            <div class="block-types">
+                <button class="block-type-btn" @onclick='() => AddBlock("text")' title="Text Block">
+                    <span>📝</span> Text
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("image")' title="Image Block">
+                    <span>🖼️</span> Image
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("video")' title="Video Block">
+                    <span>🎥</span> Video
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("html")' title="HTML Block">
+                    <span>🔧</span> HTML
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("gallery")' title="Gallery Block">
+                    <span>📷</span> Gallery
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("hero")' title="Hero Block">
+                    <span>⭐</span> Hero
+                </button>
+                <button class="block-type-btn" @onclick='() => AddBlock("cards")' title="Cards Block">
+                    <span>🃏</span> Cards
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Layout</h3>
+            <div class="layout-actions">
+                <button class="btn-secondary full-width" @onclick="AddSection">
+                    <span>➕</span> Add Section
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="designer-canvas">
+            @if (pageLayout == null)
+            {
+                <div class="empty-canvas">
+                    <div class="empty-icon">📄</div>
+                    <h2>Start Designing Your Page</h2>
+                    <p>Select a template to get started or add sections and blocks manually</p>
+                    <div class="quick-start-buttons">
+                        <button class="btn-primary" @onclick='() => ApplyTemplate("hero")'>Start with Hero</button>
+                        <button class="btn-secondary" @onclick="AddSection">Add Empty Section</button>
+                    </div>
+                </div>
+            }
+            else if (sections == null || !sections.Any())
+            {
+                <div class="empty-canvas">
+                    <p>No sections yet. Add a section to start building your page.</p>
+                    <button class="btn-primary" @onclick="AddSection">Add Section</button>
+                </div>
+            }
+            else
+            {
+                <div class="sections-container">
+                    @foreach (var sec in sections.OrderBy(s => s.Order))
+                    {
+                        <div class="section-wrapper" data-sectionid="@sec.Id">
+                            <div class="section-controls">
+                                <button class="btn-icon-sm" @onclick="() => MoveSectionUp(sec)" title="Move Up">↑</button>
+                                <button class="btn-icon-sm" @onclick="() => MoveSectionDown(sec)" title="Move Down">↓</button>
+                                <select class="section-type-select" @bind="sec.SectionType" @bind:after="() => UpdateSection(sec)">
+                                    <option value="full-width">Full Width</option>
+                                    <option value="two-column">Two Columns</option>
+                                    <option value="three-column">Three Columns</option>
+                                </select>
+                                <button class="btn-icon-sm danger" @onclick="() => DeleteSection(sec.Id)" title="Delete">🗑️</button>
+                            </div>
+
+                            <div class="section-content @($"section-{sec.SectionType}")">
+                                @RenderSectionColumns(sec)
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel">
+            @if (selectedBlock != null)
+            {
+                <h3>Block Properties</h3>
+                <div class="property-form">
+                    <div class="form-group">
+                        <label>Block Type</label>
+                        <input type="text" class="form-control" value="@selectedBlock.BlockType" readonly />
+                    </div>
+
+                    @if (selectedBlock.BlockType == "text")
+                    {
+                        <div class="form-group">
+                            <label>Content</label>
+                            <textarea class="form-control rich-editor" @bind="blockContentHtml" rows="10"></textarea>
+                        </div>
+                    }
+                    else if (selectedBlock.BlockType == "image")
+                    {
+                        <div class="form-group">
+                            <label>Image URL</label>
+                            <input type="text" class="form-control" @bind="blockImageUrl" />
+                        </div>
+                        <div class="form-group">
+                            <label>Alt Text</label>
+                            <input type="text" class="form-control" @bind="blockImageAlt" />
+                        </div>
+                    }
+                    else if (selectedBlock.BlockType == "hero")
+                    {
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" class="form-control" @bind="blockHeroTitle" />
+                        </div>
+                        <div class="form-group">
+                            <label>Subtitle</label>
+                            <input type="text" class="form-control" @bind="blockHeroSubtitle" />
+                        </div>
+                        <div class="form-group">
+                            <label>Background Image URL</label>
+                            <input type="text" class="form-control" @bind="blockHeroImageUrl" />
+                        </div>
+                    }
+                    else if (selectedBlock.BlockType == "html")
+                    {
+                        <div class="form-group">
+                            <label>HTML Content</label>
+                            <textarea class="form-control code-editor" @bind="blockHtmlContent" rows="15"></textarea>
+                        </div>
+                    }
+
+                    <div class="form-actions">
+                        <button class="btn-secondary" @onclick="CancelBlockEdit">Cancel</button>
+                        <button class="btn-primary" @onclick="SaveBlockEdit">Save Changes</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-selection">
+                    <p>Select a block to edit its properties</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int PageId { get; set; }
+
+    private Page? currentPage;
+    private PageLayout? pageLayout;
+    private List<PageSection>? sections;
+    private List<PageBlock>? blocks;
+    private PageBlock? selectedBlock;
+
+    // Block property fields
+    private string blockContentHtml = "";
+    private string blockImageUrl = "";
+    private string blockImageAlt = "";
+    private string blockHeroTitle = "";
+    private string blockHeroSubtitle = "";
+    private string blockHeroImageUrl = "";
+    private string blockHtmlContent = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPageData();
+    }
+
+    private async Task LoadPageData()
+    {
+        currentPage = await PageService.GetByIdAsync(PageId);
+        if (currentPage == null)
+        {
+            NavigationManager.NavigateTo("/admin/pages");
+            return;
+        }
+
+        pageLayout = await PageLayoutService.GetLayoutByPageIdAsync(PageId);
+        if (pageLayout != null)
+        {
+            sections = (await PageLayoutService.GetSectionsByLayoutIdAsync(pageLayout.Id)).ToList();
+            blocks = new List<PageBlock>();
+            foreach (var sec in sections)
+            {
+                var sectionBlocks = await PageLayoutService.GetBlocksBySectionIdAsync(sec.Id);
+                blocks.AddRange(sectionBlocks);
+            }
+        }
+    }
+
+    private async Task ApplyTemplate(string templateName)
+    {
+        pageLayout = await PageLayoutService.ApplyTemplateAsync(PageId, templateName);
+        await LoadPageData();
+        StateHasChanged();
+    }
+
+    private async Task AddSection()
+    {
+        if (pageLayout == null)
+        {
+            pageLayout = await PageLayoutService.CreateLayoutAsync(new PageLayout
+            {
+                PageId = PageId,
+                IsActive = true
+            });
+        }
+
+        var newSection = new PageSection
+        {
+            PageLayoutId = pageLayout.Id,
+            Order = sections?.Count ?? 0,
+            SectionType = "full-width",
+            ColumnConfiguration = "[{\"width\": \"100%\"}]"
+        };
+
+        await PageLayoutService.CreateSectionAsync(newSection);
+        await LoadPageData();
+    }
+
+    private async Task AddBlock(string blockType)
+    {
+        if (sections == null || !sections.Any())
+        {
+            await AddSection();
+        }
+
+        var firstSection = sections!.OrderBy(s => s.Order).First();
+        var newBlock = new PageBlock
+        {
+            PageSectionId = firstSection.Id,
+            ColumnIndex = 0,
+            Order = blocks?.Count(b => b.PageSectionId == firstSection.Id && b.ColumnIndex == 0) ?? 0,
+            BlockType = blockType,
+            Content = GetDefaultBlockContent(blockType)
+        };
+
+        await PageLayoutService.CreateBlockAsync(newBlock);
+        await LoadPageData();
+    }
+
+    private string GetDefaultBlockContent(string blockType)
+    {
+        return blockType switch
+        {
+            "text" => "{\"html\": \"<p>Enter your text here</p>\"}",
+            "image" => "{\"src\": \"\", \"alt\": \"Image\"}",
+            "video" => "{\"url\": \"\"}",
+            "hero" => "{\"title\": \"Hero Title\", \"subtitle\": \"Subtitle\", \"imageUrl\": \"\"}",
+            "html" => "{\"html\": \"<div>Custom HTML</div>\"}",
+            "gallery" => "{\"images\": []}",
+            "cards" => "{\"title\": \"Card Title\", \"text\": \"Card content\", \"imageUrl\": \"\"}",
+            _ => "{}"
+        };
+    }
+
+    private void EditBlock(PageBlock block)
+    {
+        selectedBlock = block;
+        
+        try
+        {
+            var content = System.Text.Json.JsonDocument.Parse(block.Content);
+            
+            switch (block.BlockType)
+            {
+                case "text":
+                    blockContentHtml = content.RootElement.TryGetProperty("html", out var html) ? html.GetString() ?? "" : "";
+                    break;
+                case "image":
+                    blockImageUrl = content.RootElement.TryGetProperty("src", out var src) ? src.GetString() ?? "" : "";
+                    blockImageAlt = content.RootElement.TryGetProperty("alt", out var alt) ? alt.GetString() ?? "" : "";
+                    break;
+                case "hero":
+                    blockHeroTitle = content.RootElement.TryGetProperty("title", out var title) ? title.GetString() ?? "" : "";
+                    blockHeroSubtitle = content.RootElement.TryGetProperty("subtitle", out var subtitle) ? subtitle.GetString() ?? "" : "";
+                    blockHeroImageUrl = content.RootElement.TryGetProperty("imageUrl", out var imageUrl) ? imageUrl.GetString() ?? "" : "";
+                    break;
+                case "html":
+                    blockHtmlContent = content.RootElement.TryGetProperty("html", out var htmlContent) ? htmlContent.GetString() ?? "" : "";
+                    break;
+            }
+        }
+        catch
+        {
+            // Invalid JSON, use defaults
+        }
+    }
+
+    private async Task SaveBlockEdit()
+    {
+        if (selectedBlock == null) return;
+
+        var newContent = selectedBlock.BlockType switch
+        {
+            "text" => $"{{\"html\": {System.Text.Json.JsonSerializer.Serialize(blockContentHtml)}}}",
+            "image" => $"{{\"src\": {System.Text.Json.JsonSerializer.Serialize(blockImageUrl)}, \"alt\": {System.Text.Json.JsonSerializer.Serialize(blockImageAlt)}}}",
+            "hero" => $"{{\"title\": {System.Text.Json.JsonSerializer.Serialize(blockHeroTitle)}, \"subtitle\": {System.Text.Json.JsonSerializer.Serialize(blockHeroSubtitle)}, \"imageUrl\": {System.Text.Json.JsonSerializer.Serialize(blockHeroImageUrl)}}}",
+            "html" => $"{{\"html\": {System.Text.Json.JsonSerializer.Serialize(blockHtmlContent)}}}",
+            _ => selectedBlock.Content
+        };
+
+        selectedBlock.Content = newContent;
+        await PageLayoutService.UpdateBlockAsync(selectedBlock);
+        await LoadPageData();
+        selectedBlock = null;
+    }
+
+    private void CancelBlockEdit()
+    {
+        selectedBlock = null;
+    }
+
+    private async Task DeleteBlock(int blockId)
+    {
+        await PageLayoutService.DeleteBlockAsync(blockId);
+        await LoadPageData();
+        if (selectedBlock?.Id == blockId)
+        {
+            selectedBlock = null;
+        }
+    }
+
+    private async Task DeleteSection(int sectionId)
+    {
+        await PageLayoutService.DeleteSectionAsync(sectionId);
+        await LoadPageData();
+    }
+
+    private async Task UpdateSection(PageSection section)
+    {
+        // Update column configuration based on section type
+        section.ColumnConfiguration = section.SectionType switch
+        {
+            "two-column" => "[{\"width\": \"50%\"}, {\"width\": \"50%\"}]",
+            "three-column" => "[{\"width\": \"33.33%\"}, {\"width\": \"33.33%\"}, {\"width\": \"33.33%\"}]",
+            _ => "[{\"width\": \"100%\"}]"
+        };
+        
+        await PageLayoutService.UpdateSectionAsync(section);
+        await LoadPageData();
+    }
+
+    private async Task MoveSectionUp(PageSection section)
+    {
+        if (sections == null) return;
+        
+        var orderedSections = sections.OrderBy(s => s.Order).ToList();
+        var currentIndex = orderedSections.IndexOf(section);
+        if (currentIndex > 0)
+        {
+            var previousSection = orderedSections[currentIndex - 1];
+            (section.Order, previousSection.Order) = (previousSection.Order, section.Order);
+            
+            await PageLayoutService.UpdateSectionAsync(section);
+            await PageLayoutService.UpdateSectionAsync(previousSection);
+            await LoadPageData();
+        }
+    }
+
+    private async Task MoveSectionDown(PageSection section)
+    {
+        if (sections == null) return;
+        
+        var orderedSections = sections.OrderBy(s => s.Order).ToList();
+        var currentIndex = orderedSections.IndexOf(section);
+        if (currentIndex < orderedSections.Count - 1)
+        {
+            var nextSection = orderedSections[currentIndex + 1];
+            (section.Order, nextSection.Order) = (nextSection.Order, section.Order);
+            
+            await PageLayoutService.UpdateSectionAsync(section);
+            await PageLayoutService.UpdateSectionAsync(nextSection);
+            await LoadPageData();
+        }
+    }
+
+    private string GetBlockTypeLabel(string blockType)
+    {
+        return blockType switch
+        {
+            "text" => "📝 Text",
+            "image" => "🖼️ Image",
+            "video" => "🎥 Video",
+            "hero" => "⭐ Hero",
+            "html" => "🔧 HTML",
+            "gallery" => "📷 Gallery",
+            "cards" => "🃏 Cards",
+            _ => blockType
+        };
+    }
+
+    private RenderFragment RenderSectionColumns(PageSection section)
+    {
+        return builder =>
+        {
+            var sectionBlocks = blocks?.Where(b => b.PageSectionId == section.Id).OrderBy(b => b.ColumnIndex).ThenBy(b => b.Order).ToList() ?? new List<PageBlock>();
+            var columnCount = section.SectionType == "three-column" ? 3 : section.SectionType == "two-column" ? 2 : 1;
+
+            for (int col = 0; col < columnCount; col++)
+            {
+                int columnIndex = col;
+                var columnBlocks = sectionBlocks.Where(b => b.ColumnIndex == columnIndex).ToList();
+                
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "section-column");
+                builder.AddAttribute(2, "data-column", columnIndex);
+                
+                if (!columnBlocks.Any())
+                {
+                    builder.OpenElement(3, "div");
+                    builder.AddAttribute(4, "class", "empty-column");
+                    builder.OpenElement(5, "p");
+                    builder.AddContent(6, "Drop blocks here");
+                    builder.CloseElement();
+                    builder.CloseElement();
+                }
+                
+                foreach (var block in columnBlocks)
+                {
+                    builder.OpenElement(7, "div");
+                    builder.AddAttribute(8, "class", "block-item");
+                    builder.AddAttribute(9, "data-block-id", block.Id);
+                    
+                    builder.OpenElement(10, "div");
+                    builder.AddAttribute(11, "class", "block-header");
+                    
+                    builder.OpenElement(12, "span");
+                    builder.AddAttribute(13, "class", "block-type-label");
+                    builder.AddContent(14, GetBlockTypeLabel(block.BlockType));
+                    builder.CloseElement();
+                    
+                    builder.OpenElement(15, "div");
+                    builder.AddAttribute(16, "class", "block-actions");
+                    
+                    builder.OpenElement(17, "button");
+                    builder.AddAttribute(18, "class", "btn-icon-xs");
+                    builder.AddAttribute(19, "onclick", EventCallback.Factory.Create(this, () => EditBlock(block)));
+                    builder.AddAttribute(20, "title", "Edit");
+                    builder.AddContent(21, "✏️");
+                    builder.CloseElement();
+                    
+                    builder.OpenElement(22, "button");
+                    builder.AddAttribute(23, "class", "btn-icon-xs danger");
+                    builder.AddAttribute(24, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(block.Id)));
+                    builder.AddAttribute(25, "title", "Delete");
+                    builder.AddContent(26, "🗑️");
+                    builder.CloseElement();
+                    
+                    builder.CloseElement(); // block-actions
+                    builder.CloseElement(); // block-header
+                    
+                    builder.OpenElement(27, "div");
+                    builder.AddAttribute(28, "class", "block-preview");
+                    builder.AddContent(29, RenderBlockPreview(block));
+                    builder.CloseElement();
+                    
+                    builder.CloseElement(); // block-item
+                }
+                
+                builder.CloseElement(); // section-column
+            }
+        };
+    }
+
+    private RenderFragment RenderBlockPreview(PageBlock block)
+    {
+        return builder =>
+        {
+            try
+            {
+                var content = System.Text.Json.JsonDocument.Parse(block.Content);
+                
+                switch (block.BlockType)
+                {
+                    case "text":
+                        var html = content.RootElement.TryGetProperty("html", out var htmlProp) ? htmlProp.GetString() : "";
+                        builder.OpenElement(0, "div");
+                        builder.AddAttribute(1, "class", "text-block-preview");
+                        builder.AddMarkupContent(2, html ?? "<p>Empty text block</p>");
+                        builder.CloseElement();
+                        break;
+                        
+                    case "image":
+                        var src = content.RootElement.TryGetProperty("src", out var srcProp) ? srcProp.GetString() : "";
+                        var alt = content.RootElement.TryGetProperty("alt", out var altProp) ? altProp.GetString() : "Image";
+                        builder.OpenElement(0, "div");
+                        builder.AddAttribute(1, "class", "image-block-preview");
+                        if (!string.IsNullOrEmpty(src))
+                        {
+                            builder.OpenElement(2, "img");
+                            builder.AddAttribute(3, "src", src);
+                            builder.AddAttribute(4, "alt", alt);
+                            builder.CloseElement();
+                        }
+                        else
+                        {
+                            builder.OpenElement(2, "div");
+                            builder.AddAttribute(3, "class", "placeholder-image");
+                            builder.AddContent(4, "🖼️ No image selected");
+                            builder.CloseElement();
+                        }
+                        builder.CloseElement();
+                        break;
+                        
+                    case "hero":
+                        var title = content.RootElement.TryGetProperty("title", out var titleProp) ? titleProp.GetString() : "Hero Title";
+                        var subtitle = content.RootElement.TryGetProperty("subtitle", out var subtitleProp) ? subtitleProp.GetString() : "";
+                        builder.OpenElement(0, "div");
+                        builder.AddAttribute(1, "class", "hero-block-preview");
+                        builder.OpenElement(2, "h2");
+                        builder.AddContent(3, title);
+                        builder.CloseElement();
+                        if (!string.IsNullOrEmpty(subtitle))
+                        {
+                            builder.OpenElement(4, "p");
+                            builder.AddContent(5, subtitle);
+                            builder.CloseElement();
+                        }
+                        builder.CloseElement();
+                        break;
+                        
+                    default:
+                        builder.OpenElement(0, "div");
+                        builder.AddAttribute(1, "class", "generic-block-preview");
+                        builder.AddContent(2, $"{block.BlockType} block");
+                        builder.CloseElement();
+                        break;
+                }
+            }
+            catch
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "error-preview");
+                builder.AddContent(2, "Error rendering block preview");
+                builder.CloseElement();
+            }
+        };
+    }
+
+    private async Task SaveDraft()
+    {
+        if (currentPage != null)
+        {
+            currentPage.IsPublished = false;
+            await PageService.UpdateAsync(currentPage);
+            await JSRuntime.InvokeVoidAsync("alert", "Draft saved successfully!");
+        }
+    }
+
+    private async Task PublishPage()
+    {
+        if (currentPage != null)
+        {
+            currentPage.IsPublished = true;
+            await PageService.UpdateAsync(currentPage);
+            await JSRuntime.InvokeVoidAsync("alert", "Page published successfully!");
+        }
+    }
+
+    private void ShowPreview()
+    {
+        if (currentPage != null)
+        {
+            var previewUrl = $"/cms{currentPage.Path}";
+            NavigationManager.NavigateTo(previewUrl, true);
+        }
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/admin/pages");
+    }
+}
