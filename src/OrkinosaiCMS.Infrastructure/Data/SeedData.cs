@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -46,15 +47,16 @@ public static class SeedData
                     databaseExists = true;
                     logger.LogInformation("Database already exists with valid schema.");
                 }
-                catch (Microsoft.Data.Sqlite.SqliteException)
+                catch (Exception ex) when (ex is SqliteException || ex is InvalidOperationException)
                 {
-                    // Table doesn't exist, need to create the database
+                    // Table doesn't exist or database is not accessible, need to create the database
+                    logger.LogInformation("Database does not exist or is incomplete: {Message}", ex.Message);
                     databaseExists = false;
                 }
                 
                 if (!databaseExists)
                 {
-                    logger.LogInformation("Database does not exist or is incomplete. Creating schema...");
+                    logger.LogInformation("Creating database schema...");
                     await context.Database.EnsureCreatedAsync();
                     logger.LogInformation("Database schema created successfully");
                 }
