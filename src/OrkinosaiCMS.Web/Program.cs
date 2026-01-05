@@ -11,6 +11,7 @@ using OrkinosaiCMS.Infrastructure.Services;
 using OrkinosaiCMS.Web.Components;
 using OrkinosaiCMS.Web.Services;
 using OrkinosaiCMS.Web.Middleware;
+using OrkinosaiCMS.Web.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,10 @@ builder.Services.AddRazorComponents()
 
 // Add HttpClient for services that need it (e.g., ChatAgent)
 builder.Services.AddHttpClient();
+
+// Configure ZootaTesting options
+builder.Services.Configure<ZootaTestingOptions>(
+    builder.Configuration.GetSection(ZootaTestingOptions.SectionName));
 
 // Add Controllers for API endpoints
 builder.Services.AddControllers();
