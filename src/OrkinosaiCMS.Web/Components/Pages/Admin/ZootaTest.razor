@@ -1127,7 +1127,10 @@ else
             var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
             
             // Call API to create page with routing and navigation setup
-            var response = await Http.PostAsJsonAsync("/api/zoota/cms/pages", new
+            // Use absolute URI by combining base URI with the API path
+            var baseUri = Navigation.BaseUri;
+            var apiUrl = new Uri(new Uri(baseUri), "/api/zoota/cms/pages").ToString();
+            var response = await Http.PostAsJsonAsync(apiUrl, new
             {
                 Title = pageName,
                 IsPublished = false,
