@@ -17,7 +17,8 @@ A modern, modular Content Management System built on .NET 10 and Blazor, inspire
 ## 📋 Requirements
 
 - .NET 10 SDK
-- SQL Server 2019+ / LocalDB (Windows) / Azure SQL (for development and production)
+- **Local Development**: SQLite (automatically configured, no additional setup required)
+- **Production/Azure**: Azure SQL Database
 - Visual Studio 2022 (17.12+) or Visual Studio 2026 (recommended)
 
 ## 🎯 Quick Start
@@ -35,9 +36,11 @@ cd orkinosaiCMS
 dotnet restore OrkinosaiCMS.sln
 ```
 
-### 3. Apply Database Migrations
+### 3. Database Setup
 
-Database is pre-configured with LocalDB for Windows. Apply the initial migration:
+#### Local Development (SQLite - Recommended)
+
+The application is **pre-configured to use SQLite** for local development. No additional database setup is required!
 
 ```bash
 # Install EF Core tools (first time only)
@@ -48,7 +51,22 @@ cd src/OrkinosaiCMS.Infrastructure
 dotnet ef database update --startup-project ../OrkinosaiCMS.Web
 ```
 
-For non-Windows or production setup, see [Database Guide](docs/DATABASE.md) and [Setup Guide](docs/SETUP.md).
+The SQLite database file (`orkinosai-cms-dev.db`) will be automatically created in the Web project directory.
+
+#### Production/Azure Deployment
+
+Production deployments **automatically enforce Azure SQL Database** usage:
+- SQLite is **not allowed** in production and will cause startup failure
+- Azure SQL connection string must be configured via Azure App Service Configuration
+- See [Azure Deployment Guide](docs/AZURE_DEPLOYMENT.md) for detailed setup instructions
+
+**Important**: The application includes automated configuration validation that:
+- ✅ Enforces SQLite for local development
+- ✅ Enforces Azure SQL for production (blocks SQLite)
+- ✅ Logs warnings for configuration mismatches
+- ✅ Prevents deployment with invalid database configuration
+
+For detailed database configuration options, see [Database Guide](docs/DATABASE.md).
 
 ### 5. Run the Application
 

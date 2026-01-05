@@ -4,12 +4,112 @@ This document describes the database architecture, entity models, and data acces
 
 ## Overview
 
-OrkinosaiCMS uses **Entity Framework Core 10.0** with **SQL Server** (including LocalDB and Azure SQL) as the primary database provider. The architecture follows clean architecture principles with:
+OrkinosaiCMS uses **Entity Framework Core 10.0** with environment-specific database providers:
+
+- **Local Development**: SQLite (default, recommended)
+- **Production/Azure**: Azure SQL Database (enforced)
+
+The architecture follows clean architecture principles with:
 
 - **Domain Entities** in `OrkinosaiCMS.Core`
 - **DbContext and Migrations** in `OrkinosaiCMS.Infrastructure`
 - **Repository Pattern** for data access abstraction
 - **Unit of Work** for transaction management
+
+## Database Configuration by Environment
+
+### Local Development (SQLite)
+
+**Default Configuration**: The application is pre-configured to use SQLite for local development.
+
+**Why SQLite for Development?**
+- ✅ No installation required - works out of the box
+- ✅ Cross-platform (Windows, macOS, Linux)
+- ✅ Zero configuration
+- ✅ File-based database - easy to reset/backup
+- ✅ Fast development iterations
+
+**Configuration** (`appsettings.Development.json`):
+```json
+{
+  "DatabaseProvider": "SQLite",
+  "ConnectionStrings": {
+    "SqliteConnection": "Data Source=orkinosai-cms-dev.db"
+  }
+}
+```
+
+**Setup**:
+```bash
+cd src/OrkinosaiCMS.Infrastructure
+dotnet ef database update --startup-project ../OrkinosaiCMS.Web
+```
+
+The SQLite database file will be created automatically in the Web project directory.
+
+### Production/Azure (Azure SQL)
+
+**Enforced Configuration**: Production deployments **must** use Azure SQL Database. The application includes automatic validation that prevents SQLite usage in production.
+
+**Configuration** (`appsettings.Production.json`):
+```json
+{
+  "DatabaseProvider": "SqlServer",
+  "ConnectionStrings": {
+    "DefaultConnection": ""
+  }
+}
+```
+
+**Important**: The connection string should be empty in `appsettings.Production.json` and configured via Azure App Service Configuration:
+
+1. Navigate to Azure Portal → Your App Service → Configuration
+2. Add Connection String:
+   - **Name**: `DefaultConnection`
+   - **Value**: Your Azure SQL connection string
+   - **Type**: SQLAzure
+
+Example Azure SQL connection string:
+```
+Server=tcp:yourserver.database.windows.net,1433;Initial Catalog=yourdb;User ID=youradmin;Password=yourpassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+```
+
+### Configuration Validation & Enforcement
+
+The application includes **automated configuration validation** on startup:
+
+#### Production Environment Checks:
+- ✅ **Blocks SQLite**: If `DatabaseProvider` is set to "SQLite", the application will throw an exception and refuse to start
+- ✅ **Validates Connection String**: Ensures Azure SQL connection string is properly configured
+- ✅ **Logs Configuration**: Records database configuration validation in startup logs
+
+#### Development Environment Checks:
+- ⚠️ **Recommends SQLite**: Logs a warning if not using SQLite (but allows other providers)
+- ✅ **Validates Configuration**: Ensures database provider settings are consistent
+
+**Error Messages**:
+
+If production is misconfigured with SQLite:
+```
+CONFIGURATION ERROR: Production environment is configured to use SQLite.
+This is not allowed for production deployments. Production must use Azure SQL Database.
+Please update appsettings.Production.json to set DatabaseProvider to 'SqlServer'
+```
+
+If production connection string is invalid:
+```
+CONFIGURATION ERROR: Production environment has invalid connection string.
+Azure SQL connection string must be configured via environment variables or Azure App Service Configuration.
+```
+
+### Switching Between Database Providers
+
+**Not Recommended**: While technically possible to switch database providers, it requires:
+1. Updating the `DatabaseProvider` setting
+2. Running new migrations for the target database
+3. Migrating existing data
+
+**Best Practice**: Use SQLite for local development, Azure SQL for production. Don't switch providers unless absolutely necessary.
 
 ## Database Schema
 

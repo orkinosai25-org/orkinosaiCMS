@@ -74,10 +74,64 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 // Register Oqtane Authentication Service (separate from main auth)
 builder.Services.AddScoped<IOqtaneAuthService, OqtaneAuthService>();
 
-// Configure Database
+// Configure Database with Environment-Specific Validation
+var environment = builder.Environment.EnvironmentName;
 var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+// Validate database configuration based on environment
+var configLogger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("DatabaseConfig");
+
+if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+{
+    // CRITICAL: Production MUST use Azure SQL, never SQLite
+    if (databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
+    {
+        configLogger.LogCritical("CONFIGURATION ERROR: Production environment is configured to use SQLite. " +
+            "This is not allowed for production deployments. Production must use Azure SQL Database.");
+        configLogger.LogCritical("Please update appsettings.Production.json to set DatabaseProvider to 'SqlServer' " +
+            "and configure the Azure SQL connection string via environment variables or Azure App Service Configuration.");
+        throw new InvalidOperationException(
+            "Production environment cannot use SQLite. Please configure Azure SQL Database. " +
+            "Set DatabaseProvider='SqlServer' in appsettings.Production.json and provide Azure SQL connection string.");
+    }
+    
+    // Validate Azure SQL connection string is not empty or default
+    if (string.IsNullOrWhiteSpace(connectionString) || 
+        connectionString.Contains("(localdb)", StringComparison.OrdinalIgnoreCase) ||
+        connectionString.Contains("orkinosai-cms.db", StringComparison.OrdinalIgnoreCase))
+    {
+        configLogger.LogCritical("CONFIGURATION ERROR: Production environment has invalid connection string. " +
+            "Azure SQL connection string must be configured via environment variables or Azure App Service Configuration.");
+        throw new InvalidOperationException(
+            "Production environment requires a valid Azure SQL connection string. " +
+            "Please configure ConnectionStrings__DefaultConnection in Azure App Service Configuration.");
+    }
+    
+    configLogger.LogInformation("✓ Database configuration validated: Production using Azure SQL Database");
+}
+else if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
+{
+    // Development should prefer SQLite for local testing
+    if (!databaseProvider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
+    {
+        configLogger.LogWarning("Development environment is configured to use {Provider}. " +
+            "For local development, SQLite is recommended for easier setup and testing. " +
+            "Current setting will be used, but consider switching to SQLite for local development.",
+            databaseProvider);
+    }
+    else
+    {
+        configLogger.LogInformation("✓ Database configuration validated: Development using SQLite (recommended for local dev)");
+    }
+}
+else
+{
+    // Other environments (Staging, etc.)
+    configLogger.LogInformation("Database configuration: Environment={Environment}, Provider={Provider}",
+        environment, databaseProvider);
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
