@@ -33,6 +33,45 @@ else
         </div>
 
         <div class="test-content">
+            <div class="single-test-section">
+                <h3>Create Single Test Entry</h3>
+                <p>Quickly create and run a single test with customizable parameters</p>
+                
+                <div class="single-test-form">
+                    <div class="form-group">
+                        <label for="testAction">Action:</label>
+                        <input type="text" id="testAction" @bind="singleTestAction" class="form-input" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testParamName">Page Name:</label>
+                        <input type="text" id="testParamName" @bind="singleTestParamName" class="form-input" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testExpectCreated">Expect Created:</label>
+                        <input type="checkbox" id="testExpectCreated" @bind="singleTestExpectCreated" class="form-checkbox" />
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn-run-single" @onclick="RunSingleTest" disabled="@isRunning">
+                            @if (isRunning)
+                            {
+                                <span>⏳ Running...</span>
+                            }
+                            else
+                            {
+                                <span>▶️ Run Single Test</span>
+                            }
+                        </button>
+                        
+                        <button class="btn-reset" @onclick="ResetSingleTest">
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="upload-section">
                 <h3>Select Test Files</h3>
                 <p>Choose one or more test files from the <code>tests/zoota-tests</code> folder</p>
@@ -267,14 +306,102 @@ else
         gap: 30px;
     }
 
-    .upload-section, .results-section, .example-section {
+    .upload-section, .results-section, .example-section, .single-test-section {
         background: white;
         border-radius: 12px;
         padding: 30px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .upload-section h3, .results-section h3, .example-section h3 {
+    .single-test-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border: 2px solid #0078D4;
+    }
+
+    .single-test-form {
+        margin-top: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #0078D4;
+    }
+
+    .form-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 16px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+
+    .btn-run-single {
+        padding: 12px 32px;
+        background: #0078D4;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-run-single:hover:not(:disabled) {
+        background: #005a9e;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    }
+
+    .btn-run-single:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-reset {
+        padding: 12px 32px;
+        background: #f0f0f0;
+        color: #333;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-reset:hover {
+        background: #e0e0e0;
+        border-color: #bbb;
+    }
+
+    .upload-section h3, .results-section h3, .example-section h3, .single-test-section h3 {
         color: #333;
         margin-bottom: 16px;
     }
@@ -611,6 +738,11 @@ else
     private List<TestFileInfo> availableTestFiles = new();
     private HashSet<string> selectedTestFiles = new();
     private bool selectAllChecked = false;
+    
+    // Single test entry fields with defaults
+    private string singleTestAction = "createPage";
+    private string singleTestParamName = "DemoTestPage";
+    private bool singleTestExpectCreated = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -716,6 +848,54 @@ else
     {
         selectedTestFiles.Clear();
         selectAllChecked = false;
+    }
+
+    private void ResetSingleTest()
+    {
+        singleTestAction = "createPage";
+        singleTestParamName = "DemoTestPage";
+        singleTestExpectCreated = true;
+    }
+
+    private async Task RunSingleTest()
+    {
+        isRunning = true;
+        testResults.Clear();
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Running single test: {Action}", singleTestAction);
+
+            // Create a test step from the form values
+            var testStep = new TestStep
+            {
+                Action = singleTestAction,
+                Params = System.Text.Json.JsonSerializer.SerializeToElement(new { name = singleTestParamName }),
+                Expect = System.Text.Json.JsonSerializer.SerializeToElement(new { created = singleTestExpectCreated })
+            };
+
+            var result = await ExecuteTestStep(testStep);
+            testResults.Add(result);
+
+            Logger.LogInformation("Single test execution completed. Passed: {Passed}", result.Passed);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error running single test");
+            testResults.Add(new TestResult
+            {
+                Action = singleTestAction,
+                Passed = false,
+                Message = "Failed to execute single test",
+                Details = ex.Message
+            });
+        }
+        finally
+        {
+            isRunning = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -946,21 +1126,25 @@ else
         {
             var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
             
-            // Call API to create page
+            // Call API to create page with routing and navigation setup
             var response = await Http.PostAsJsonAsync("/api/zoota/cms/pages", new
             {
                 Title = pageName,
-                IsPublished = false
+                IsPublished = false,
+                ShowInNavigation = true  // Ensure page is added to navigation
             });
 
             if (response.IsSuccessStatusCode)
             {
+                var result = await response.Content.ReadFromJsonAsync<CreatePageResponse>();
+                var pagePath = result?.Data?.Path ?? "unknown";
+                
                 return new TestResult
                 {
                     Action = "createPage",
                     Passed = true,
                     Message = $"Successfully created page: {pageName}",
-                    Details = "Page created and available in CMS"
+                    Details = $"Page created with routing at '/{pagePath}' and added to navigation (ShowInNavigation: {result?.Data?.ShowInNavigation ?? true})"
                 };
             }
             else
@@ -1045,6 +1229,22 @@ else
         public string? Action { get; set; }
         public System.Text.Json.JsonElement? Params { get; set; }
         public System.Text.Json.JsonElement? Expect { get; set; }
+    }
+
+    private class CreatePageResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public CreatePageData? Data { get; set; }
+    }
+
+    private class CreatePageData
+    {
+        public int Id { get; set; }
+        public string? Title { get; set; }
+        public string? Path { get; set; }
+        public bool ShowInNavigation { get; set; }
+        public bool IsPublished { get; set; }
     }
 
     private class TestResult
