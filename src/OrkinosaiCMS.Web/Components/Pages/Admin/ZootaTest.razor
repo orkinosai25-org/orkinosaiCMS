@@ -2,12 +2,14 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.Options
 @using OrkinosaiCMS.Web.Models
+@using OrkinosaiCMS.Core.Interfaces.Services
+@using OrkinosaiCMS.Core.Entities.Sites
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @layout OrkinosaiCMS.Web.Components.Layout.Admin.AdminLayout
 @inject IOptions<ZootaTestingOptions> ZootaTestingOptions
 @inject NavigationManager Navigation
 @inject ILogger<ZootaTest> Logger
-@inject HttpClient Http
+@inject IPageService PageService
 
 <PageTitle>Zoota Test Runner - OrkinosaiCMS</PageTitle>
 
@@ -1122,44 +1124,31 @@ else
 
     private async Task<TestResult> ExecuteCreatePage(TestStep step)
     {
+        var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
+        
         try
         {
-            var pageName = step.Params?.GetProperty("name").GetString() ?? "Untitled";
-            
-            // Call API to create page with routing and navigation setup
-            // Use absolute URI by combining base URI with the API path
-            var apiUrl = new Uri(new Uri(Navigation.BaseUri), "/api/zoota/cms/pages").ToString();
-            var response = await Http.PostAsJsonAsync(apiUrl, new
+            // Create page directly using IPageService (proper pattern for server-side Blazor)
+            var page = new Page
             {
                 Title = pageName,
+                Path = GenerateSlug(pageName),
                 IsPublished = false,
-                ShowInNavigation = true  // Ensure page is added to navigation
-            });
+                ShowInNavigation = true,
+                SiteId = 1, // Default site
+                CreatedBy = "zoota-test",
+                CreatedOn = DateTime.UtcNow
+            };
 
-            if (response.IsSuccessStatusCode)
+            var created = await PageService.CreateAsync(page);
+            
+            return new TestResult
             {
-                var result = await response.Content.ReadFromJsonAsync<CreatePageResponse>();
-                var pagePath = result?.Data?.Path ?? "unknown";
-                
-                return new TestResult
-                {
-                    Action = "createPage",
-                    Passed = true,
-                    Message = $"Successfully created page: {pageName}",
-                    Details = $"Page created with routing at '/{pagePath}' and added to navigation (ShowInNavigation: {result?.Data?.ShowInNavigation ?? true})"
-                };
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                return new TestResult
-                {
-                    Action = "createPage",
-                    Passed = false,
-                    Message = $"Failed to create page: {pageName}",
-                    Details = $"API Error: {response.StatusCode} - {error}"
-                };
-            }
+                Action = "createPage",
+                Passed = true,
+                Message = $"Successfully created page: {pageName}",
+                Details = $"Page created with routing at '/{created.Path}' and added to navigation (ShowInNavigation: {created.ShowInNavigation})"
+            };
         }
         catch (Exception ex)
         {
@@ -1167,7 +1156,7 @@ else
             {
                 Action = "createPage",
                 Passed = false,
-                Message = "Error creating page",
+                Message = $"Failed to create page: {pageName}",
                 Details = ex.Message
             };
         }
@@ -1220,6 +1209,23 @@ else
         public string Description { get; set; } = string.Empty;
     }
 
+    private string GenerateSlug(string title)
+    {
+        // Convert to lowercase and remove diacritics
+        var slug = title.ToLower().Trim();
+        
+        // Replace invalid characters with hyphens
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        
+        // Replace multiple spaces or hyphens with single hyphen
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[\s-]+", "-");
+        
+        // Remove leading and trailing hyphens
+        slug = slug.Trim('-');
+        
+        return slug;
+    }
+
     private class TestSuite
     {
         public string? Name { get; set; }
@@ -1231,22 +1237,6 @@ else
         public string? Action { get; set; }
         public System.Text.Json.JsonElement? Params { get; set; }
         public System.Text.Json.JsonElement? Expect { get; set; }
-    }
-
-    private class CreatePageResponse
-    {
-        public bool Success { get; set; }
-        public string? Message { get; set; }
-        public CreatePageData? Data { get; set; }
-    }
-
-    private class CreatePageData
-    {
-        public int Id { get; set; }
-        public string? Title { get; set; }
-        public string? Path { get; set; }
-        public bool ShowInNavigation { get; set; }
-        public bool IsPublished { get; set; }
     }
 
     private class TestResult
