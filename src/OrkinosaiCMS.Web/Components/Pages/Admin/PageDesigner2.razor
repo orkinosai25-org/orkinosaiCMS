@@ -506,18 +506,16 @@
                 
                 foreach (var block in columnBlocks)
                 {
-                    var currentBlock = block; // Capture block in local variable to avoid closure issues
-                    
                     builder.OpenElement(sequence++, "div");
                     builder.AddAttribute(sequence++, "class", "block-item");
-                    builder.AddAttribute(sequence++, "data-block-id", currentBlock.Id);
+                    builder.AddAttribute(sequence++, "data-block-id", block.Id);
                     
                     builder.OpenElement(sequence++, "div");
                     builder.AddAttribute(sequence++, "class", "block-header");
                     
                     builder.OpenElement(sequence++, "span");
                     builder.AddAttribute(sequence++, "class", "block-type-label");
-                    builder.AddContent(sequence++, GetBlockTypeLabel(currentBlock.BlockType));
+                    builder.AddContent(sequence++, GetBlockTypeLabel(block.BlockType));
                     builder.CloseElement();
                     
                     builder.OpenElement(sequence++, "div");
@@ -526,14 +524,14 @@
                     builder.OpenElement(sequence++, "button");
                     builder.AddAttribute(sequence++, "class", "btn-icon-xs");
                     builder.AddAttribute(sequence++, "title", "Edit");
-                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => EditBlock(currentBlock)));
+                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => EditBlock(block)));
                     builder.AddContent(sequence++, "✏️");
                     builder.CloseElement();
                     
                     builder.OpenElement(sequence++, "button");
                     builder.AddAttribute(sequence++, "class", "btn-icon-xs danger");
                     builder.AddAttribute(sequence++, "title", "Delete");
-                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(currentBlock.Id)));
+                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(block.Id)));
                     builder.AddContent(sequence++, "🗑️");
                     builder.CloseElement();
                     
@@ -542,7 +540,7 @@
                     
                     builder.OpenElement(sequence++, "div");
                     builder.AddAttribute(sequence++, "class", "block-preview");
-                    builder.AddContent(sequence++, RenderBlockPreview(currentBlock));
+                    builder.AddContent(sequence++, RenderBlockPreview(block));
                     builder.CloseElement();
                     
                     builder.CloseElement(); // block-item
