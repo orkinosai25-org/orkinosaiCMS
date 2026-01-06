@@ -8,6 +8,7 @@
 @inject IPageLayoutService PageLayoutService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ILogger<PageDesigner2> Logger
 
 <PageTitle>Page Designer - OrkinosaiCMS Admin</PageTitle>
 
@@ -358,7 +359,8 @@
         catch (Exception ex)
         {
             // Log error and use default empty values
-            Console.WriteLine($"Error parsing block content: {ex.Message}. Content: {block.Content}");
+            Logger.LogWarning(ex, "Error parsing block content for block type {BlockType}. Using default values. Content: {Content}", 
+                block.BlockType, block.Content);
         }
         
         StateHasChanged();
