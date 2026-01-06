@@ -364,7 +364,7 @@
         catch (Exception ex)
         {
             // Log error and use default empty values (don't log full content to avoid exposing sensitive data)
-            var contentPreview = block.Content?.Length > 50 ? block.Content.Substring(0, 50) + "..." : block.Content;
+            var contentPreview = block.Content?.Substring(0, Math.Min(50, block.Content?.Length ?? 0)) + "..." ?? "";
             Logger.LogWarning(ex, "Error parsing block content for block type {BlockType}. Using default values. Content preview: {ContentPreview}", 
                 block.BlockType, contentPreview);
         }
