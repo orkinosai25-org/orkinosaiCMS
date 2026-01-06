@@ -523,15 +523,15 @@
                     
                     builder.OpenElement(sequence++, "button");
                     builder.AddAttribute(sequence++, "class", "btn-icon-xs");
-                    builder.AddAttribute(sequence++, "title", "Edit");
                     builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => EditBlock(block)));
+                    builder.AddAttribute(sequence++, "title", "Edit");
                     builder.AddContent(sequence++, "✏️");
                     builder.CloseElement();
                     
                     builder.OpenElement(sequence++, "button");
                     builder.AddAttribute(sequence++, "class", "btn-icon-xs danger");
-                    builder.AddAttribute(sequence++, "title", "Delete");
                     builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(block.Id)));
+                    builder.AddAttribute(sequence++, "title", "Delete");
                     builder.AddContent(sequence++, "🗑️");
                     builder.CloseElement();
                     

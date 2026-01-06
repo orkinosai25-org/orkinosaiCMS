@@ -804,7 +804,7 @@ public class PageDesigner2TestHelper
         
         try
         {
-            var content = JsonDocument.Parse(block.Content);
+            using var content = JsonDocument.Parse(block.Content);
             
             switch (block.BlockType)
             {
