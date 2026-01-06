@@ -488,6 +488,142 @@ public class PageDesigner2Tests
     }
 
     #endregion
+
+    #region Edit Button Click Tests
+
+    [Fact]
+    public void EditBlock_HeroBlock_ShouldPopulateFormFields()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var heroBlock = new PageBlock
+        {
+            Id = 1,
+            BlockType = "hero",
+            Content = "{\"title\": \"Welcome\", \"subtitle\": \"Your hero message here\", \"imageUrl\": \"/hero.jpg\"}"
+        };
+
+        // Act
+        helper.SimulateEditBlockClick(heroBlock);
+
+        // Assert
+        Assert.Equal("Welcome", helper.BlockHeroTitle);
+        Assert.Equal("Your hero message here", helper.BlockHeroSubtitle);
+        Assert.Equal("/hero.jpg", helper.BlockHeroImageUrl);
+    }
+
+    [Fact]
+    public void EditBlock_TextBlock_ShouldPopulateFormFields()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var textBlock = new PageBlock
+        {
+            Id = 2,
+            BlockType = "text",
+            Content = "{\"html\": \"<p>Test content</p>\"}"
+        };
+
+        // Act
+        helper.SimulateEditBlockClick(textBlock);
+
+        // Assert
+        Assert.Equal("<p>Test content</p>", helper.BlockContentHtml);
+    }
+
+    [Fact]
+    public void EditBlock_ImageBlock_ShouldPopulateFormFields()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var imageBlock = new PageBlock
+        {
+            Id = 3,
+            BlockType = "image",
+            Content = "{\"src\": \"/images/test.jpg\", \"alt\": \"Test Image\"}"
+        };
+
+        // Act
+        helper.SimulateEditBlockClick(imageBlock);
+
+        // Assert
+        Assert.Equal("/images/test.jpg", helper.BlockImageUrl);
+        Assert.Equal("Test Image", helper.BlockImageAlt);
+    }
+
+    [Fact]
+    public void EditBlock_HtmlBlock_ShouldPopulateFormFields()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var htmlBlock = new PageBlock
+        {
+            Id = 4,
+            BlockType = "html",
+            Content = "{\"html\": \"<div class='custom'>HTML content</div>\"}"
+        };
+
+        // Act
+        helper.SimulateEditBlockClick(htmlBlock);
+
+        // Assert
+        Assert.Equal("<div class='custom'>HTML content</div>", helper.BlockHtmlContent);
+    }
+
+    [Fact]
+    public void EditBlock_MultipleBlocks_ShouldResetFieldsBetweenEdits()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var heroBlock = new PageBlock
+        {
+            Id = 1,
+            BlockType = "hero",
+            Content = "{\"title\": \"Hero Title\", \"subtitle\": \"Hero Subtitle\", \"imageUrl\": \"\"}"
+        };
+        var textBlock = new PageBlock
+        {
+            Id = 2,
+            BlockType = "text",
+            Content = "{\"html\": \"<p>Text content</p>\"}"
+        };
+
+        // Act - Edit hero block first
+        helper.SimulateEditBlockClick(heroBlock);
+        Assert.Equal("Hero Title", helper.BlockHeroTitle);
+        Assert.Equal("", helper.BlockContentHtml); // Should be empty for non-text block
+
+        // Act - Edit text block
+        helper.SimulateEditBlockClick(textBlock);
+
+        // Assert - Hero fields should be reset, text field should be populated
+        Assert.Equal("", helper.BlockHeroTitle);
+        Assert.Equal("", helper.BlockHeroSubtitle);
+        Assert.Equal("<p>Text content</p>", helper.BlockContentHtml);
+    }
+
+    [Fact]
+    public void EditBlock_InvalidJson_ShouldUseEmptyValues()
+    {
+        // Arrange
+        var helper = new PageDesigner2TestHelper();
+        var invalidBlock = new PageBlock
+        {
+            Id = 5,
+            BlockType = "hero",
+            Content = "{invalid json content}"
+        };
+
+        // Act
+        var exception = Record.Exception(() => helper.SimulateEditBlockClick(invalidBlock));
+
+        // Assert
+        Assert.Null(exception); // Should not throw
+        Assert.Equal("", helper.BlockHeroTitle);
+        Assert.Equal("", helper.BlockHeroSubtitle);
+    }
+
+    #endregion
 }
 
 /// <summary>
@@ -655,5 +791,44 @@ public class PageDesigner2TestHelper
             return content;
         
         return content.Substring(0, 50) + "...";
+    }
+
+    /// <summary>
+    /// Simulates clicking the edit button on a block in the PageDesigner2 interface.
+    /// This replicates the EditBlock method behavior from PageDesigner2.razor.
+    /// </summary>
+    public void SimulateEditBlockClick(PageBlock block)
+    {
+        // Reset all form fields to prevent stale data (same as EditBlock method)
+        ResetFormFields();
+        
+        try
+        {
+            var content = JsonDocument.Parse(block.Content);
+            
+            switch (block.BlockType)
+            {
+                case "text":
+                    BlockContentHtml = content.RootElement.TryGetProperty("html", out var html) ? html.GetString() ?? "" : "";
+                    break;
+                case "image":
+                    BlockImageUrl = content.RootElement.TryGetProperty("src", out var src) ? src.GetString() ?? "" : "";
+                    BlockImageAlt = content.RootElement.TryGetProperty("alt", out var alt) ? alt.GetString() ?? "" : "";
+                    break;
+                case "hero":
+                    BlockHeroTitle = content.RootElement.TryGetProperty("title", out var title) ? title.GetString() ?? "" : "";
+                    BlockHeroSubtitle = content.RootElement.TryGetProperty("subtitle", out var subtitle) ? subtitle.GetString() ?? "" : "";
+                    BlockHeroImageUrl = content.RootElement.TryGetProperty("imageUrl", out var imageUrl) ? imageUrl.GetString() ?? "" : "";
+                    break;
+                case "html":
+                    BlockHtmlContent = content.RootElement.TryGetProperty("html", out var htmlContent) ? htmlContent.GetString() ?? "" : "";
+                    break;
+            }
+        }
+        catch
+        {
+            // Error parsing block content - use default empty values
+            // This matches the behavior in PageDesigner2.razor EditBlock method
+        }
     }
 }
