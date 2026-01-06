@@ -169,12 +169,15 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<IPageLayoutService, PageLayoutService>();
 builder.Services.AddScoped<IMasterPageService, MasterPageService>();
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<INavigationService, NavigationService>();
+builder.Services.AddScoped<IAIImageGenerationService, AIImageGenerationService>();
+builder.Services.AddHttpClient(); // Required for AIImageGenerationService
 builder.Services.AddScoped<IMediaService>(sp =>
 {
     var fileRepo = sp.GetRequiredService<IRepository<OrkinosaiCMS.Core.Entities.Media.MediaFile>>();

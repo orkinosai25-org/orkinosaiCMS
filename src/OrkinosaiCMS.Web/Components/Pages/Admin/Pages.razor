@@ -103,6 +103,9 @@
                             <td>@(pg.ModifiedOn?.ToString("MMM dd, yyyy") ?? pg.CreatedOn.ToString("MMM dd, yyyy"))</td>
                             <td>
                                 <div class="action-buttons">
+                                    <button class="btn-icon" @onclick="() => DesignPage(pg)" title="Design">
+                                        🎨
+                                    </button>
                                     <button class="btn-icon" @onclick="() => EditPage(pg)" title="Edit">
                                         ✏️
                                     </button>
@@ -811,6 +814,11 @@
     {
         if (!masterPageId.HasValue || masterPages == null) return null;
         return masterPages.FirstOrDefault(mp => mp.Id == masterPageId.Value)?.Name;
+    }
+
+    private void DesignPage(Page page)
+    {
+        NavigationManager.NavigateTo($"/admin/pages/designer/{page.Id}");
     }
 
     private void ShowCreatePage()

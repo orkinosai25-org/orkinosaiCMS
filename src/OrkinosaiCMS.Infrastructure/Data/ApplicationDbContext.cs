@@ -23,6 +23,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<Page> Pages => Set<Page>();
     public DbSet<MasterPage> MasterPages => Set<MasterPage>();
+    public DbSet<PageLayout> PageLayouts => Set<PageLayout>();
+    public DbSet<PageSection> PageSections => Set<PageSection>();
+    public DbSet<PageBlock> PageBlocks => Set<PageBlock>();
 
     // Modules
     public DbSet<Module> Modules => Set<Module>();
@@ -67,6 +70,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         modelBuilder.Entity<Site>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Page>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<MasterPage>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<PageLayout>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<PageSection>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<PageBlock>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Module>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<PageModule>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Theme>().HasQueryFilter(e => !e.IsDeleted);

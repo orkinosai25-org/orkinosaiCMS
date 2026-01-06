@@ -11,7 +11,7 @@ A modern, modular Content Management System built on .NET 10 and Blazor, inspire
 - **Flexible Permissions**: Fine-grained, SharePoint-style permission system
 - **Master Pages**: Reusable layouts with content zones
 - **Theme Support**: Customizable visual themes
-- **Zoota AI Assistant**: 🤖 AI-powered chat assistant for admin tasks (see [User Guide](docs/ZOOTA_USER_GUIDE.md))
+- **Zoota AI Assistant**: 🤖 AI-powered chat assistant for admin tasks and **visual page design** (see [User Guide](docs/ZOOTA_USER_GUIDE.md) & [Page Designer Integration](docs/ZOOTA_PAGE_DESIGNER.md))
 - **SaaS-Ready**: Architecture designed for multi-tenancy (coming soon)
 
 ## 📋 Requirements
