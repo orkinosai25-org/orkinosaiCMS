@@ -323,6 +323,15 @@
     {
         selectedBlock = block;
         
+        // Reset all form fields to prevent stale data
+        blockContentHtml = "";
+        blockImageUrl = "";
+        blockImageAlt = "";
+        blockHeroTitle = "";
+        blockHeroSubtitle = "";
+        blockHeroImageUrl = "";
+        blockHtmlContent = "";
+        
         try
         {
             var content = System.Text.Json.JsonDocument.Parse(block.Content);
@@ -346,10 +355,13 @@
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Invalid JSON, use defaults
+            // Log error and use default empty values
+            Console.WriteLine($"Error parsing block content: {ex.Message}. Content: {block.Content}");
         }
+        
+        StateHasChanged();
     }
 
     private async Task SaveBlockEdit()
@@ -369,11 +381,13 @@
         await PageLayoutService.UpdateBlockAsync(selectedBlock);
         await LoadPageData();
         selectedBlock = null;
+        StateHasChanged();
     }
 
     private void CancelBlockEdit()
     {
         selectedBlock = null;
+        StateHasChanged();
     }
 
     private async Task DeleteBlock(int blockId)
