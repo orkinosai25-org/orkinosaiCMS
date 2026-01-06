@@ -483,63 +483,64 @@
         {
             var sectionBlocks = blocks?.Where(b => b.PageSectionId == section.Id).OrderBy(b => b.ColumnIndex).ThenBy(b => b.Order).ToList() ?? new List<PageBlock>();
             var columnCount = section.SectionType == "three-column" ? 3 : section.SectionType == "two-column" ? 2 : 1;
+            int sequence = 0;
 
             for (int col = 0; col < columnCount; col++)
             {
                 int columnIndex = col;
                 var columnBlocks = sectionBlocks.Where(b => b.ColumnIndex == columnIndex).ToList();
                 
-                builder.OpenElement(0, "div");
-                builder.AddAttribute(1, "class", "section-column");
-                builder.AddAttribute(2, "data-column", columnIndex);
+                builder.OpenElement(sequence++, "div");
+                builder.AddAttribute(sequence++, "class", "section-column");
+                builder.AddAttribute(sequence++, "data-column", columnIndex);
                 
                 if (!columnBlocks.Any())
                 {
-                    builder.OpenElement(3, "div");
-                    builder.AddAttribute(4, "class", "empty-column");
-                    builder.OpenElement(5, "p");
-                    builder.AddContent(6, "Drop blocks here");
+                    builder.OpenElement(sequence++, "div");
+                    builder.AddAttribute(sequence++, "class", "empty-column");
+                    builder.OpenElement(sequence++, "p");
+                    builder.AddContent(sequence++, "Drop blocks here");
                     builder.CloseElement();
                     builder.CloseElement();
                 }
                 
                 foreach (var block in columnBlocks)
                 {
-                    builder.OpenElement(7, "div");
-                    builder.AddAttribute(8, "class", "block-item");
-                    builder.AddAttribute(9, "data-block-id", block.Id);
+                    builder.OpenElement(sequence++, "div");
+                    builder.AddAttribute(sequence++, "class", "block-item");
+                    builder.AddAttribute(sequence++, "data-block-id", block.Id);
                     
-                    builder.OpenElement(10, "div");
-                    builder.AddAttribute(11, "class", "block-header");
+                    builder.OpenElement(sequence++, "div");
+                    builder.AddAttribute(sequence++, "class", "block-header");
                     
-                    builder.OpenElement(12, "span");
-                    builder.AddAttribute(13, "class", "block-type-label");
-                    builder.AddContent(14, GetBlockTypeLabel(block.BlockType));
+                    builder.OpenElement(sequence++, "span");
+                    builder.AddAttribute(sequence++, "class", "block-type-label");
+                    builder.AddContent(sequence++, GetBlockTypeLabel(block.BlockType));
                     builder.CloseElement();
                     
-                    builder.OpenElement(15, "div");
-                    builder.AddAttribute(16, "class", "block-actions");
+                    builder.OpenElement(sequence++, "div");
+                    builder.AddAttribute(sequence++, "class", "block-actions");
                     
-                    builder.OpenElement(17, "button");
-                    builder.AddAttribute(18, "class", "btn-icon-xs");
-                    builder.AddAttribute(19, "onclick", EventCallback.Factory.Create(this, () => EditBlock(block)));
-                    builder.AddAttribute(20, "title", "Edit");
-                    builder.AddContent(21, "✏️");
+                    builder.OpenElement(sequence++, "button");
+                    builder.AddAttribute(sequence++, "class", "btn-icon-xs");
+                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => EditBlock(block)));
+                    builder.AddAttribute(sequence++, "title", "Edit");
+                    builder.AddContent(sequence++, "✏️");
                     builder.CloseElement();
                     
-                    builder.OpenElement(22, "button");
-                    builder.AddAttribute(23, "class", "btn-icon-xs danger");
-                    builder.AddAttribute(24, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(block.Id)));
-                    builder.AddAttribute(25, "title", "Delete");
-                    builder.AddContent(26, "🗑️");
+                    builder.OpenElement(sequence++, "button");
+                    builder.AddAttribute(sequence++, "class", "btn-icon-xs danger");
+                    builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => DeleteBlock(block.Id)));
+                    builder.AddAttribute(sequence++, "title", "Delete");
+                    builder.AddContent(sequence++, "🗑️");
                     builder.CloseElement();
                     
                     builder.CloseElement(); // block-actions
                     builder.CloseElement(); // block-header
                     
-                    builder.OpenElement(27, "div");
-                    builder.AddAttribute(28, "class", "block-preview");
-                    builder.AddContent(29, RenderBlockPreview(block));
+                    builder.OpenElement(sequence++, "div");
+                    builder.AddAttribute(sequence++, "class", "block-preview");
+                    builder.AddContent(sequence++, RenderBlockPreview(block));
                     builder.CloseElement();
                     
                     builder.CloseElement(); // block-item
