@@ -8,6 +8,7 @@
 @inject IPageLayoutService PageLayoutService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ILogger<PageDesigner2> Logger
 
 <PageTitle>Page Designer - OrkinosaiCMS Admin</PageTitle>
 
@@ -319,9 +320,23 @@
         };
     }
 
+    private void ResetFormFields()
+    {
+        blockContentHtml = "";
+        blockImageUrl = "";
+        blockImageAlt = "";
+        blockHeroTitle = "";
+        blockHeroSubtitle = "";
+        blockHeroImageUrl = "";
+        blockHtmlContent = "";
+    }
+
     private void EditBlock(PageBlock block)
     {
         selectedBlock = block;
+        
+        // Reset all form fields to prevent stale data
+        ResetFormFields();
         
         try
         {
@@ -346,10 +361,15 @@
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Invalid JSON, use defaults
+            // Log error and use default empty values (don't log full content to avoid exposing sensitive data)
+            var contentPreview = block.Content?.Substring(0, Math.Min(50, block.Content?.Length ?? 0)) + "..." ?? "";
+            Logger.LogWarning(ex, "Error parsing block content for block type {BlockType}. Using default values. Content preview: {ContentPreview}", 
+                block.BlockType, contentPreview);
         }
+        
+        StateHasChanged();
     }
 
     private async Task SaveBlockEdit()
@@ -369,11 +389,13 @@
         await PageLayoutService.UpdateBlockAsync(selectedBlock);
         await LoadPageData();
         selectedBlock = null;
+        StateHasChanged();
     }
 
     private void CancelBlockEdit()
     {
         selectedBlock = null;
+        StateHasChanged();
     }
 
     private async Task DeleteBlock(int blockId)
