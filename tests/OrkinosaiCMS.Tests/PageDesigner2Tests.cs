@@ -496,6 +496,15 @@ public class PageDesigner2Tests
 /// </summary>
 public class PageDesigner2TestHelper
 {
+    /// <summary>
+    /// Valid block types supported by PageDesigner2.
+    /// Must match the block types supported by the actual PageDesigner2 component.
+    /// </summary>
+    public static readonly string[] ValidBlockTypes = new[] 
+    { 
+        "text", "image", "hero", "html", "video", "gallery", "cards" 
+    };
+
     // Form fields
     public string BlockContentHtml { get; set; } = "";
     public string BlockImageUrl { get; set; } = "";
@@ -619,8 +628,7 @@ public class PageDesigner2TestHelper
 
     public bool IsValidBlockType(string blockType)
     {
-        var validTypes = new[] { "text", "image", "hero", "html", "video", "gallery", "cards" };
-        return validTypes.Contains(blockType);
+        return ValidBlockTypes.Contains(blockType);
     }
 
     public string GetDefaultBlockContent(string blockType)
