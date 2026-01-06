@@ -320,11 +320,8 @@
         };
     }
 
-    private void EditBlock(PageBlock block)
+    private void ResetFormFields()
     {
-        selectedBlock = block;
-        
-        // Reset all form fields to prevent stale data
         blockContentHtml = "";
         blockImageUrl = "";
         blockImageAlt = "";
@@ -332,6 +329,14 @@
         blockHeroSubtitle = "";
         blockHeroImageUrl = "";
         blockHtmlContent = "";
+    }
+
+    private void EditBlock(PageBlock block)
+    {
+        selectedBlock = block;
+        
+        // Reset all form fields to prevent stale data
+        ResetFormFields();
         
         try
         {
@@ -358,9 +363,10 @@
         }
         catch (Exception ex)
         {
-            // Log error and use default empty values
-            Logger.LogWarning(ex, "Error parsing block content for block type {BlockType}. Using default values. Content: {Content}", 
-                block.BlockType, block.Content);
+            // Log error and use default empty values (don't log full content to avoid exposing sensitive data)
+            var contentPreview = block.Content?.Length > 50 ? block.Content.Substring(0, 50) + "..." : block.Content;
+            Logger.LogWarning(ex, "Error parsing block content for block type {BlockType}. Using default values. Content preview: {ContentPreview}", 
+                block.BlockType, contentPreview);
         }
         
         StateHasChanged();
